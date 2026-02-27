@@ -1,0 +1,179 @@
+// ============================================
+// LifeOS - Prisma Schema
+// Base de datos PostgreSQL
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUARIOS Y CONFIGURACIÓN
+// ============================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  avatarUrl    String?  @map("avatar_url")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  settings        UserSettings?
+  modules         UserModule[]
+  studyPlans      StudyPlan[]
+  studySessions   StudySession[]
+  reviewSchedules ReviewSchedule[]
+  reviewSettings  ReviewSettings?
+
+  @@map("users")
+}
+
+model UserSettings {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  timezone  String   @default("Europe/Madrid")
+  theme     String   @default("system") // system, light, dark
+  locale    String   @default("es")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model UserModule {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  moduleKey    String   @map("module_key") // dashboard, studies, sports, nutrition, habits
+  isActive     Boolean  @default(true) @map("is_active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleKey])
+  @@map("user_modules")
+}
+
+// ============================================
+// MÓDULO DE ESTUDIOS
+// ============================================
+
+model StudyPlan {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  name         String
+  description  String?
+  status       String   @default("active") // active, archived, completed
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects Subject[]
+
+  @@map("study_plans")
+}
+
+model Subject {
+  id           String   @id @default(uuid())
+  studyPlanId  String   @map("study_plan_id")
+  name         String
+  description  String?
+  color        String   @default("#6366f1") // indigo por defecto
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  studyPlan StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  topics    Topic[]
+
+  @@map("subjects")
+}
+
+model Topic {
+  id                 String   @id @default(uuid())
+  subjectId          String   @map("subject_id")
+  name               String
+  description        String?
+  masteryLevel       Int      @default(1) @map("mastery_level") // 1-10, manual del usuario
+  systemMasteryLevel Float    @default(0) @map("system_mastery_level") // 1-10, calculado por el sistema
+  status             String   @default("not_started") // not_started, in_progress, mastered
+  displayOrder       Int      @default(0) @map("display_order")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  studySessions   StudySession[]
+  reviewSchedules ReviewSchedule[]
+
+  @@map("topics")
+}
+
+model StudySession {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  topicId         String   @map("topic_id")
+  sessionType     String   @default("first_time") @map("session_type") // first_time, review, practice
+  durationMinutes Int?     @map("duration_minutes")
+  qualityRating   Int?     @map("quality_rating") // 1-5
+  notes           String?
+  studiedAt       DateTime @default(now()) @map("studied_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@map("study_sessions")
+}
+
+// ============================================
+// SISTEMA DE REPASOS
+// ============================================
+
+model ReviewSchedule {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  topicId       String    @map("topic_id")
+  scheduledDate DateTime  @map("scheduled_date") @db.Date
+  completedDate DateTime? @map("completed_date")
+  status        String    @default("pending") // pending, completed, skipped
+  result        String?   // perfect, good, regular, bad
+  urgencyScore  Float     @default(0) @map("urgency_score")
+  intervalDays  Int       @map("interval_days")
+  reviewNumber  Int       @map("review_number")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, scheduledDate])
+  @@map("review_schedule")
+}
+
+model ReviewSettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  baseIntervals     Json     @default("[1, 7, 30, 90]") @map("base_intervals") // días entre repasos base
+  perfectMultiplier Float    @default(2.5) @map("perfect_multiplier")
+  goodMultiplier    Float    @default(2.0) @map("good_multiplier")
+  regularMultiplier Float    @default(1.2) @map("regular_multiplier")
+  badReset          Boolean  @default(true) @map("bad_reset") // true = vuelve al día 1
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("review_settings")
+}

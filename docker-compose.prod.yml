@@ -1,0 +1,75 @@
+# ============================================
+# LifeOS - Docker Compose (Producción)
+# PostgreSQL + Backend + Frontend + Nginx
+# ============================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lifeos-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - lifeos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lifeos-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lifeos-api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      NODE_ENV: production
+      PORT: 3000
+      CORS_ORIGIN: ""
+    networks:
+      - lifeos-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+    container_name: lifeos-web
+    restart: always
+    networks:
+      - lifeos-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: lifeos-proxy
+    restart: always
+    ports:
+      - "${APP_PORT:-80}:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - lifeos-network
+
+volumes:
+  lifeos_pgdata:
+    driver: local
+
+networks:
+  lifeos-network:
+    driver: bridge

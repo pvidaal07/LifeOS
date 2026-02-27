@@ -1,0 +1,41 @@
+# ============================================
+# LifeOS - Docker Compose (Desarrollo)
+# Solo PostgreSQL + pgAdmin
+# Backend y Frontend se ejecutan con npm run dev
+# ============================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lifeos-db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-lifeos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-lifeos_dev_2026}
+      POSTGRES_DB: ${DB_NAME:-lifeos}
+    volumes:
+      - lifeos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeos -d lifeos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: lifeos-pgadmin
+    restart: unless-stopped
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@lifeos.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  lifeos_pgdata:
+    driver: local
