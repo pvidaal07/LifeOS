@@ -2,9 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
-import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AppModule } from './infrastructure/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -35,8 +33,7 @@ async function bootstrap() {
   );
 
   // ─── Global filters & interceptors ────────────────
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new TransformInterceptor());
+  // Registered via APP_FILTER / APP_INTERCEPTOR in AppModule
 
   // ─── Swagger ──────────────────────────────────────
   const config = new DocumentBuilder()
