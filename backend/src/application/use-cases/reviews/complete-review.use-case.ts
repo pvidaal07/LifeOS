@@ -53,7 +53,11 @@ export class CompleteReviewUseCase {
       result,
       effectiveSettings,
     );
-    const nextDate = this.spacedRepetition.calculateNextReviewDate(new Date(), nextIntervalDays);
+    // Use the later of scheduledDate or now as base date:
+    // - Early completion → count from original scheduledDate (preserves calendar spacing)
+    // - Late completion  → count from today (already past schedule)
+    const baseDate = review.scheduledDate > new Date() ? review.scheduledDate : new Date();
+    const nextDate = this.spacedRepetition.calculateNextReviewDate(baseDate, nextIntervalDays);
 
     // 5. Create next review schedule
     const nextReview = ReviewSchedule.scheduleNext({

@@ -116,7 +116,11 @@ export class CreateSessionUseCase {
       result,
       effectiveSettings,
     );
-    const nextDate = this.spacedRepetition.calculateNextReviewDate(new Date(), nextIntervalDays);
+    // Use the later of scheduledDate or now as base date:
+    // - Early completion → count from original scheduledDate (preserves calendar spacing)
+    // - Late completion  → count from today (already past schedule)
+    const baseDate = pendingReview.scheduledDate > new Date() ? pendingReview.scheduledDate : new Date();
+    const nextDate = this.spacedRepetition.calculateNextReviewDate(baseDate, nextIntervalDays);
 
     const nextReview = ReviewSchedule.scheduleNext({
       id: crypto.randomUUID(),
