@@ -162,7 +162,7 @@ export function PlanDetailPage() {
   }
 
   const getMasteryColor = (level: number) => {
-    if (level >= 8) return 'text-green-600';
+    if (level >= 7) return 'text-green-600';
     if (level >= 5) return 'text-yellow-600';
     if (level >= 3) return 'text-orange-600';
     return 'text-red-600';

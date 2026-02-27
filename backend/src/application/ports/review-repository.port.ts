@@ -2,6 +2,7 @@ import { ReviewSchedule } from '../../domain/review';
 
 export interface ReviewRepositoryPort {
   findPendingByUserId(userId: string, upToDate: Date): Promise<ReviewScheduleWithTopic[]>;
+  findUpcomingByUserId(userId: string, afterDate: Date, limit?: number): Promise<ReviewScheduleWithTopic[]>;
   findPendingById(id: string, userId: string): Promise<ReviewSchedule | null>;
   findCompletedByTopicId(topicId: string): Promise<CompletedReviewData[]>;
   findAllPendingByUserId(userId: string): Promise<ReviewScheduleForUrgency[]>;

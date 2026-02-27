@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Clock, BarChart3, History, BookOpen, X, Pencil, Trash2, Check } from 'lucide-react';
+import { ArrowLeft, Clock, BarChart3, History, BookOpen, X, Pencil, Trash2, Check, CalendarClock, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
 import type { Topic } from '../../types';
@@ -91,7 +91,7 @@ export function TopicDetailPage() {
   }
 
   const getMasteryColor = (level: number) => {
-    if (level >= 8) return 'bg-green-500';
+    if (level >= 7) return 'bg-green-500';
     if (level >= 5) return 'bg-yellow-500';
     if (level >= 3) return 'bg-orange-500';
     return 'bg-red-500';
@@ -232,7 +232,7 @@ export function TopicDetailPage() {
       </div>
 
       {/* Dominio */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -315,6 +315,11 @@ export function TopicDetailPage() {
               style={{ width: `${topic.systemMasteryLevel * 10}%` }}
             />
           </div>
+          {topic.systemMasteryLevel === 0 && topic.status !== 'not_started' && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Completa repasos desde la página de Repasos para subir tu dominio
+            </p>
+          )}
         </div>
 
         <div className="rounded-lg border border-border p-4">
@@ -322,11 +327,86 @@ export function TopicDetailPage() {
             <Clock className="h-4 w-4" />
             <span className="text-xs">Estado</span>
           </div>
-          <p className="text-lg font-semibold capitalize">
+          <p className={`text-lg font-semibold ${
+            topic.status === 'mastered' ? 'text-green-600' :
+            topic.status === 'in_progress' ? 'text-blue-600' : 'text-muted-foreground'
+          }`}>
             {topic.status === 'not_started' ? 'Sin empezar' :
              topic.status === 'in_progress' ? 'En progreso' : 'Dominado'}
           </p>
+          {topic.status === 'in_progress' && topic.systemMasteryLevel > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Dominio ≥ 7 para marcar como dominado
+            </p>
+          )}
         </div>
+
+        {/* Next review card */}
+        {(() => {
+          const pendingReviews = ((topic as any).reviewSchedules ?? [])
+            .filter((r: any) => r.status === 'pending')
+            .sort((a: any, b: any) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+          const nextReview = pendingReviews[0];
+          const now = new Date();
+
+          if (nextReview) {
+            const reviewDate = new Date(nextReview.scheduledDate);
+            const isToday = reviewDate.toDateString() === now.toDateString();
+            const isPast = reviewDate <= now;
+
+            return (
+              <div className={`rounded-lg border p-4 ${isPast ? 'border-orange-300 bg-orange-50' : 'border-border'}`}>
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <CalendarClock className="h-4 w-4" />
+                  <span className="text-xs">Próximo repaso</span>
+                </div>
+                <p className={`text-lg font-semibold ${isPast ? 'text-orange-600' : ''}`}>
+                  {isToday ? 'Hoy' :
+                   isPast ? 'Atrasado' :
+                   reviewDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Repaso #{nextReview.reviewNumber} · {nextReview.intervalDays}d intervalo
+                </p>
+                {isPast && (
+                  <Link
+                    to="/reviews"
+                    className="mt-2 inline-flex items-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Ir a repasos
+                  </Link>
+                )}
+              </div>
+            );
+          }
+
+          if (topic.status === 'not_started') {
+            return (
+              <div className="rounded-lg border border-dashed border-border p-4">
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <CalendarClock className="h-4 w-4" />
+                  <span className="text-xs">Próximo repaso</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Registra tu primera sesión para activar los repasos automáticos
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="rounded-lg border border-border p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <CalendarClock className="h-4 w-4" />
+                <span className="text-xs">Próximo repaso</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Sin repasos pendientes
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Historial de sesiones */}
@@ -371,10 +451,23 @@ export function TopicDetailPage() {
 
       {/* Historial de repasos */}
       <section>
-        <h2 className="text-lg font-semibold mb-3">Historial de repasos</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Historial de repasos</h2>
+          {((topic as any).reviewSchedules ?? []).some((r: any) => r.status === 'pending') && (
+            <Link
+              to="/reviews"
+              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Ir a repasos
+            </Link>
+          )}
+        </div>
         {(topic as any).reviewSchedules?.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
-            No hay repasos programados aún
+            {topic.status === 'not_started'
+              ? 'Estudia este tema para activar el sistema de repasos automáticos'
+              : 'No hay repasos programados aún'}
           </div>
         ) : (
           <div className="space-y-2">

@@ -44,6 +44,7 @@ export const USE_CASE_TOKENS = {
 
   // ── Reviews ───────────────────────────────────
   GetPendingReviewsUseCase: 'GetPendingReviewsUseCase',
+  GetUpcomingReviewsUseCase: 'GetUpcomingReviewsUseCase',
   CompleteReviewUseCase: 'CompleteReviewUseCase',
   SkipReviewUseCase: 'SkipReviewUseCase',
   RecalculateUrgencyUseCase: 'RecalculateUrgencyUseCase',

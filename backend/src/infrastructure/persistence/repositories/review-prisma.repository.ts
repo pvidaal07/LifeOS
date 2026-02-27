@@ -52,6 +52,46 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
   }
 
   /**
+   * Fetch upcoming reviews (scheduled after today), joined with topic/subject/plan info.
+   * These are reviews not yet due — visible in the "upcoming" section.
+   * Ordered by scheduledDate ASC (soonest first).
+   */
+  async findUpcomingByUserId(
+    userId: string,
+    afterDate: Date,
+    limit: number = 20,
+  ): Promise<ReviewScheduleWithTopic[]> {
+    const reviews = await this.prisma.reviewSchedule.findMany({
+      where: {
+        userId,
+        status: 'pending',
+        scheduledDate: { gt: afterDate },
+      },
+      include: {
+        topic: {
+          include: {
+            subject: {
+              include: {
+                studyPlan: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { scheduledDate: 'asc' },
+      take: limit,
+    });
+
+    return reviews.map((review) => ({
+      review: ReviewScheduleMapper.toDomain(review),
+      topicName: review.topic.name,
+      subjectName: review.topic.subject.name,
+      subjectColor: review.topic.subject.color,
+      planName: review.topic.subject.studyPlan.name,
+    }));
+  }
+
+  /**
    * Fetch a single pending review by ID, scoped to userId.
    * Used by completeReview / skipReview use-cases.
    */

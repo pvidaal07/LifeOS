@@ -15,6 +15,7 @@ import { GetPendingReviewsUseCase } from '../../../application/use-cases/reviews
 import { CompleteReviewUseCase } from '../../../application/use-cases/reviews';
 import { SkipReviewUseCase } from '../../../application/use-cases/reviews';
 import { RecalculateUrgencyUseCase } from '../../../application/use-cases/reviews';
+import { GetUpcomingReviewsUseCase } from '../../../application/use-cases/reviews';
 import { JwtAuthGuard, CurrentUser } from '../../auth';
 import { CompleteReviewDto } from '../dto/reviews';
 import { ReviewScheduleWithTopic } from '../../../application/ports/review-repository.port';
@@ -28,6 +29,8 @@ export class ReviewsController {
   constructor(
     @Inject(USE_CASE_TOKENS.GetPendingReviewsUseCase)
     private readonly getPendingReviewsUseCase: GetPendingReviewsUseCase,
+    @Inject(USE_CASE_TOKENS.GetUpcomingReviewsUseCase)
+    private readonly getUpcomingReviewsUseCase: GetUpcomingReviewsUseCase,
     @Inject(USE_CASE_TOKENS.CompleteReviewUseCase)
     private readonly completeReviewUseCase: CompleteReviewUseCase,
     @Inject(USE_CASE_TOKENS.SkipReviewUseCase)
@@ -40,6 +43,13 @@ export class ReviewsController {
   @ApiOperation({ summary: 'Obtener repasos pendientes de hoy (ordenados por urgencia)' })
   async getPending(@CurrentUser('sub') userId: string) {
     const results = await this.getPendingReviewsUseCase.execute(userId);
+    return results.map((r) => this.mapReviewWithTopic(r));
+  }
+
+  @Get('upcoming')
+  @ApiOperation({ summary: 'Obtener repasos programados para los proximos dias' })
+  async getUpcoming(@CurrentUser('sub') userId: string) {
+    const results = await this.getUpcomingReviewsUseCase.execute(userId);
     return results.map((r) => this.mapReviewWithTopic(r));
   }
 

@@ -77,6 +77,9 @@ export const studiesApi = {
   getPendingReviews: () =>
     apiClient.get<ApiResponse<ReviewSchedule[]>>('/studies/reviews/pending'),
 
+  getUpcomingReviews: () =>
+    apiClient.get<ApiResponse<ReviewSchedule[]>>('/studies/reviews/upcoming'),
+
   completeReview: (id: string, data: {
     result: ReviewResult;
     durationMinutes?: number;

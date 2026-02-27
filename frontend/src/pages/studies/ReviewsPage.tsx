@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RotateCcw, SkipForward, AlertTriangle, RefreshCw } from 'lucide-react';
+import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
 import type { ReviewSchedule, ReviewResult } from '../../types';
@@ -13,6 +13,14 @@ export function ReviewsPage() {
     queryKey: ['pending-reviews'],
     queryFn: async () => {
       const res = await studiesApi.getPendingReviews();
+      return res.data.data as ReviewSchedule[];
+    },
+  });
+
+  const { data: upcomingReviews, isLoading: isLoadingUpcoming } = useQuery({
+    queryKey: ['upcoming-reviews'],
+    queryFn: async () => {
+      const res = await studiesApi.getUpcomingReviews();
       return res.data.data as ReviewSchedule[];
     },
   });
@@ -91,6 +99,20 @@ export function ReviewsPage() {
     { result: 'bad', label: 'Mal', classes: 'bg-red-100 text-red-700 hover:bg-red-200' },
   ];
 
+  const formatRelativeDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Hoy';
+    if (diffDays === 1) return 'Mañana';
+    if (diffDays <= 7) return `En ${diffDays} días`;
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -106,7 +128,10 @@ export function ReviewsPage() {
       {/* Empty state */}
       {sortedReviews.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
-          No tienes repasos pendientes!
+          No tienes repasos pendientes por hoy.
+          {(upcomingReviews ?? []).length > 0 && (
+            <p className="mt-1 text-sm">Revisa más abajo tus próximos repasos programados.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -219,6 +244,62 @@ export function ReviewsPage() {
           ))}
         </div>
       )}
+
+      {/* ─── Próximos repasos ─────────────────────── */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div className="flex items-center gap-3">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Próximos repasos</h2>
+          {(upcomingReviews ?? []).length > 0 && (
+            <span className="rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 text-sm font-medium">
+              {(upcomingReviews ?? []).length}
+            </span>
+          )}
+        </div>
+
+        {isLoadingUpcoming ? (
+          <div className="text-sm text-muted-foreground">Cargando próximos repasos...</div>
+        ) : (upcomingReviews ?? []).length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground text-sm">
+            No hay repasos programados próximamente.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {(upcomingReviews ?? []).map((review) => (
+              <div
+                key={review.id}
+                className="rounded-lg border border-border bg-card/50 p-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="h-3 w-3 rounded-full shrink-0"
+                    style={{ backgroundColor: review.topic?.subject?.color || '#6366f1' }}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{review.topic?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {review.topic?.subject?.name}
+                      {review.topic?.subject?.studyPlan?.name && (
+                        <> · {review.topic.subject.studyPlan.name}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0 ml-4">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{formatRelativeDate(review.scheduledDate)}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    Repaso #{review.reviewNumber}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { USE_CASE_TOKENS } from '../http/use-case-tokens';
 // Use-cases
 import {
   GetPendingReviewsUseCase,
+  GetUpcomingReviewsUseCase,
   CompleteReviewUseCase,
   SkipReviewUseCase,
   RecalculateUrgencyUseCase,
@@ -52,6 +53,12 @@ import type { SessionRepositoryPort } from '../../application/ports/session-repo
       provide: USE_CASE_TOKENS.GetPendingReviewsUseCase,
       useFactory: (reviewRepo: ReviewRepositoryPort) =>
         new GetPendingReviewsUseCase(reviewRepo),
+      inject: [REVIEW_REPOSITORY],
+    },
+    {
+      provide: USE_CASE_TOKENS.GetUpcomingReviewsUseCase,
+      useFactory: (reviewRepo: ReviewRepositoryPort) =>
+        new GetUpcomingReviewsUseCase(reviewRepo),
       inject: [REVIEW_REPOSITORY],
     },
     {
