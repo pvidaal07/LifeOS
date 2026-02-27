@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { studiesApi } from '../api/studies.api';
 import type { DashboardData } from '../types';
 
@@ -61,7 +62,17 @@ export function DashboardPage() {
 
       {/* Repasos pendientes */}
       <section>
-        <h2 className="text-lg font-semibold mb-3">Repasos pendientes</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Repasos pendientes</h2>
+          {(data?.reviews.count ?? 0) > 0 && (
+            <Link
+              to="/reviews"
+              className="text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              Ir a repasos →
+            </Link>
+          )}
+        </div>
         {data?.reviews.pending.length === 0 ? (
           <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
             🎉 ¡No tienes repasos pendientes! Buen trabajo.

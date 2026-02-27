@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
+  RotateCcw,
   Dumbbell,
   UtensilsCrossed,
 } from 'lucide-react';
@@ -10,6 +11,7 @@ import { cn } from '../../lib/utils';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, moduleKey: 'dashboard' },
   { name: 'Estudios', href: '/studies', icon: BookOpen, moduleKey: 'studies' },
+  { name: 'Repasos', href: '/reviews', icon: RotateCcw, moduleKey: 'studies' },
   { name: 'Deporte', href: '/sports', icon: Dumbbell, moduleKey: 'sports', disabled: true },
   { name: 'Nutrición', href: '/nutrition', icon: UtensilsCrossed, moduleKey: 'nutrition', disabled: true },
 ];

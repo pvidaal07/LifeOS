@@ -7,6 +7,7 @@ import { DashboardPage } from '../pages/DashboardPage';
 import { PlansPage } from '../pages/studies/PlansPage';
 import { PlanDetailPage } from '../pages/studies/PlanDetailPage';
 import { TopicDetailPage } from '../pages/studies/TopicDetailPage';
+import { ReviewsPage } from '../pages/studies/ReviewsPage';
 
 export function AppRoutes() {
   return (
@@ -23,6 +24,7 @@ export function AppRoutes() {
           <Route path="/studies" element={<PlansPage />} />
           <Route path="/studies/:planId" element={<PlanDetailPage />} />
           <Route path="/studies/topics/:topicId" element={<TopicDetailPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
         </Route>
       </Route>
 

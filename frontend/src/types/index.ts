@@ -117,6 +117,11 @@ export interface ReviewSchedule {
 
 export type ReviewResult = 'perfect' | 'good' | 'regular' | 'bad';
 
+export interface CompleteReviewResponse {
+  completedReview: ReviewSchedule;
+  nextReview: ReviewSchedule | null;
+}
+
 // ─── Dashboard ───────────────────────────────
 
 export interface DashboardData {

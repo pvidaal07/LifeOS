@@ -5,6 +5,7 @@ import type {
   Topic,
   StudySession,
   ReviewSchedule,
+  CompleteReviewResponse,
   DashboardData,
   ApiResponse,
   ReviewResult,
@@ -82,10 +83,10 @@ export const studiesApi = {
     qualityRating?: number;
     notes?: string;
   }) =>
-    apiClient.post<ApiResponse<unknown>>(`/studies/reviews/${id}/complete`, data),
+    apiClient.post<ApiResponse<CompleteReviewResponse>>(`/studies/reviews/${id}/complete`, data),
 
   skipReview: (id: string) =>
-    apiClient.post<ApiResponse<unknown>>(`/studies/reviews/${id}/skip`),
+    apiClient.post<ApiResponse<ReviewSchedule>>(`/studies/reviews/${id}/skip`),
 
   // ─── Dashboard ─────────────────────────────
   getDashboard: () =>
