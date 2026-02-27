@@ -31,6 +31,15 @@ apiClient.interceptors.response.use(
 
     // Si es 401 y no es un retry, intentar refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Las rutas de auth no deben intentar refresh — son las que CREAN la sesión
+      const isAuthRoute =
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/register');
+
+      if (isAuthRoute) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       try {
@@ -49,7 +58,7 @@ apiClient.interceptors.response.use(
         // Refresh falló → cerrar sesión
         useAuthStore.getState().logout();
         window.location.href = '/login';
-        return Promise.reject(refreshError);
+        return Promise.reject(error); // Propagar error original, no refreshError
       }
     }
 
