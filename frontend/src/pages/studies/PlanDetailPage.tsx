@@ -77,6 +77,7 @@ export function PlanDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['study-plan', planId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['pending-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-reviews'] });
       setSessionForm(null);
       toast.success('¡Sesión registrada!');
     },

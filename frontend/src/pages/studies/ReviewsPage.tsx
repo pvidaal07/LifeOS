@@ -30,6 +30,7 @@ export function ReviewsPage() {
       studiesApi.completeReview(id, { result }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setExpandedReviewId(null);
       toast.success('Repaso completado');
@@ -43,6 +44,7 @@ export function ReviewsPage() {
     mutationFn: (id: string) => studiesApi.skipReview(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Repaso saltado, reprogramado');
     },

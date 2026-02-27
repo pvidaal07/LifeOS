@@ -48,6 +48,7 @@ export function TopicDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['topic', topicId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['pending-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-reviews'] });
       setShowSessionForm(false);
       setSessionFormData({});
       toast.success('¡Sesión registrada!');

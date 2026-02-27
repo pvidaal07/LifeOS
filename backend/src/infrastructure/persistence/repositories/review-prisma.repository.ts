@@ -107,6 +107,24 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
   }
 
   /**
+   * Fetch the most urgent pending review for a topic, scoped to userId.
+   * Returns the review with the earliest scheduledDate (most overdue first).
+   * Used by CreateSessionUseCase to auto-complete reviews when a study session
+   * of type "review" is registered.
+   */
+  async findPendingByTopicId(
+    topicId: string,
+    userId: string,
+  ): Promise<ReviewSchedule | null> {
+    const review = await this.prisma.reviewSchedule.findFirst({
+      where: { topicId, userId, status: 'pending' },
+      orderBy: { scheduledDate: 'asc' },
+    });
+
+    return review ? ReviewScheduleMapper.toDomain(review) : null;
+  }
+
+  /**
    * Fetch completed reviews for a topic — used to calculate system mastery.
    * Returns only the fields needed for mastery computation.
    */
