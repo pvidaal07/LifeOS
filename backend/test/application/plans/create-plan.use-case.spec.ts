@@ -8,7 +8,7 @@ describe('CreatePlanUseCase', () => {
   const useCase = new CreatePlanUseCase(planRepo);
 
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create a study plan with the given name and description', async () => {

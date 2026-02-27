@@ -9,7 +9,7 @@ describe('DeletePlanUseCase', () => {
   const useCase = new DeletePlanUseCase(planRepo);
 
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should delete the plan and return the deleted entity', async () => {

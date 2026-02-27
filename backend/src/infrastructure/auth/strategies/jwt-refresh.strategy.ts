@@ -8,6 +8,10 @@ import { TokenPayload } from '../../../application/ports/auth.port';
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(configService: ConfigService) {
+    const secret = configService.get<string>('jwt.refreshSecret');
+    if (!secret) {
+      throw new Error('JWT refresh secret is not configured (jwt.refreshSecret)');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
@@ -15,7 +19,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('jwt.refreshSecret'),
+      secretOrKey: secret,
     });
   }
 

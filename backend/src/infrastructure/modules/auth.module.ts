@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { StringValue } from 'ms';
 
 // Persistence
 import { PrismaModule } from '../persistence/prisma/prisma.module';
@@ -62,7 +63,7 @@ import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: config.get<string>('jwt.expiration'),
+          expiresIn: config.get<string>('jwt.expiration') as StringValue,
         },
       }),
     }),
