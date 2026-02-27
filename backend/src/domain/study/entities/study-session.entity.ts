@@ -88,4 +88,18 @@ export class StudySession extends AggregateRoot {
   static fromPersistence(props: StudySessionProps): StudySession {
     return new StudySession(props);
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      topicId: this.topicId,
+      sessionType: this.sessionType.value,
+      durationMinutes: this.durationMinutes,
+      qualityRating: this.qualityRating,
+      notes: this.notes,
+      studiedAt: this.studiedAt,
+      createdAt: this.createdAt,
+    };
+  }
 }

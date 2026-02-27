@@ -16,7 +16,7 @@ export interface UserSettingsRepositoryPort {
 
 export interface UserModuleRepositoryPort {
   findActiveByUserId(userId: string): Promise<UserModule[]>;
-  upsertMany(userId: string, modules: UserModule[]): Promise<void>;
+  upsertMany(userId: string, modules: UserModule[]): Promise<UserModule[]>;
 }
 
 export interface UserProfile {

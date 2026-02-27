@@ -10,7 +10,7 @@ export interface ModuleInput {
 export class UpdateModulesUseCase {
   constructor(private readonly moduleRepo: UserModuleRepositoryPort) {}
 
-  async execute(userId: string, modules: ModuleInput[]): Promise<void> {
+  async execute(userId: string, modules: ModuleInput[]): Promise<UserModule[]> {
     const userModules = modules.map((mod) =>
       UserModule.create({
         id: crypto.randomUUID(),
@@ -21,6 +21,6 @@ export class UpdateModulesUseCase {
       }),
     );
 
-    await this.moduleRepo.upsertMany(userId, userModules);
+    return this.moduleRepo.upsertMany(userId, userModules);
   }
 }

@@ -163,4 +163,21 @@ export class ReviewSchedule extends AggregateRoot {
     this._urgencyScore = score;
     this._updatedAt = new Date();
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      topicId: this.topicId,
+      scheduledDate: this.scheduledDate,
+      completedDate: this.completedDate,
+      status: this.status.value,
+      result: this.result ? this.result.value : null,
+      urgencyScore: this.urgencyScore,
+      intervalDays: this.intervalDays,
+      reviewNumber: this.reviewNumber,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }

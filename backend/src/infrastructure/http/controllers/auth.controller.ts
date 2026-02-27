@@ -18,6 +18,7 @@ import { RefreshTokensUseCase } from '../../../application/use-cases/auth';
 import { GetProfileUseCase } from '../../../application/use-cases/users';
 import { JwtAuthGuard, JwtRefreshAuthGuard, CurrentUser } from '../../auth';
 import { RegisterDto, LoginDto } from '../dto/auth';
+import { UsersController } from './users.controller';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -99,8 +100,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener perfil del usuario autenticado' })
-  getProfile(@CurrentUser('sub') userId: string) {
-    return this.getProfileUseCase.execute(userId);
+  async getProfile(@CurrentUser('sub') userId: string) {
+    const profile = await this.getProfileUseCase.execute(userId);
+    return UsersController.mapProfile(profile);
   }
 
   /**

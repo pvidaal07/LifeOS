@@ -112,14 +112,17 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
   }
 
   /**
-   * Create a new review schedule.
-   * Used by scheduleFirstReview, completeReview (schedule next), skipReview.
+   * Save a review schedule (create or update).
+   * Uses upsert: creates if the ID doesn't exist, updates if it does.
+   * This handles both new reviews (scheduleFirst, scheduleNext) and
+   * updates to existing reviews (complete, skip).
    */
   async save(review: ReviewSchedule): Promise<void> {
     const data = ReviewScheduleMapper.toPersistence(review);
 
-    await this.prisma.reviewSchedule.create({
-      data: {
+    await this.prisma.reviewSchedule.upsert({
+      where: { id: data.id },
+      create: {
         id: data.id,
         userId: data.userId,
         topicId: data.topicId,
@@ -130,6 +133,16 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
         urgencyScore: data.urgencyScore,
         intervalDays: data.intervalDays,
         reviewNumber: data.reviewNumber,
+      },
+      update: {
+        scheduledDate: data.scheduledDate,
+        completedDate: data.completedDate,
+        status: data.status,
+        result: data.result,
+        urgencyScore: data.urgencyScore,
+        intervalDays: data.intervalDays,
+        reviewNumber: data.reviewNumber,
+        updatedAt: data.updatedAt,
       },
     });
   }

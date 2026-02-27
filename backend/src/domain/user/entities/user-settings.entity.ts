@@ -63,4 +63,16 @@ export class UserSettings extends Entity {
     if (params.locale !== undefined) this._locale = params.locale;
     this._updatedAt = new Date();
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      timezone: this.timezone,
+      theme: this.theme,
+      locale: this.locale,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }

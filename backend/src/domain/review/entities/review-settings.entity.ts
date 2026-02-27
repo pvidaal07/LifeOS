@@ -89,4 +89,18 @@ export class ReviewSettings extends Entity {
   getFirstInterval(): number {
     return this._baseIntervals[0] ?? 1;
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      baseIntervals: [...this._baseIntervals],
+      perfectMultiplier: this.perfectMultiplier,
+      goodMultiplier: this.goodMultiplier,
+      regularMultiplier: this.regularMultiplier,
+      badReset: this.badReset,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }

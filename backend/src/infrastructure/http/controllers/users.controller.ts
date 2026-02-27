@@ -16,6 +16,8 @@ import { UpdateModulesUseCase } from '../../../application/use-cases/users';
 import { GetActiveModulesUseCase } from '../../../application/use-cases/users';
 import { JwtAuthGuard, CurrentUser } from '../../auth';
 import { UpdateProfileDto, UpdateSettingsDto, UpdateModuleDto } from '../dto/users';
+import { User, UserSettings, UserModule } from '../../../domain/user';
+import { UserProfile } from '../../../application/ports/user-repository.port';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -37,42 +39,45 @@ export class UsersController {
 
   @Get('me')
   @ApiOperation({ summary: 'Obtener perfil del usuario actual' })
-  getProfile(@CurrentUser('sub') userId: string) {
-    return this.getProfileUseCase.execute(userId);
+  async getProfile(@CurrentUser('sub') userId: string) {
+    const profile = await this.getProfileUseCase.execute(userId);
+    return UsersController.mapProfile(profile);
   }
 
   @Patch('me')
   @ApiOperation({ summary: 'Actualizar perfil' })
-  updateProfile(
+  async updateProfile(
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateProfileDto,
   ) {
-    return this.updateProfileUseCase.execute(userId, {
+    const user = await this.updateProfileUseCase.execute(userId, {
       name: dto.name,
       avatarUrl: dto.avatarUrl,
     });
+    return UsersController.mapUserSafe(user);
   }
 
   @Patch('me/settings')
   @ApiOperation({ summary: 'Actualizar configuración' })
-  updateSettings(
+  async updateSettings(
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateSettingsDto,
   ) {
-    return this.updateSettingsUseCase.execute(userId, {
+    const settings = await this.updateSettingsUseCase.execute(userId, {
       timezone: dto.timezone,
       theme: dto.theme,
       locale: dto.locale,
     });
+    return UsersController.mapSettings(settings);
   }
 
   @Put('me/modules')
   @ApiOperation({ summary: 'Actualizar módulos activos del menú' })
-  updateModules(
+  async updateModules(
     @CurrentUser('sub') userId: string,
     @Body() modules: UpdateModuleDto[],
   ) {
-    return this.updateModulesUseCase.execute(
+    const result = await this.updateModulesUseCase.execute(
       userId,
       modules.map((m) => ({
         moduleKey: m.moduleKey,
@@ -80,11 +85,72 @@ export class UsersController {
         displayOrder: m.displayOrder ?? 0,
       })),
     );
+    return result.map(UsersController.mapModule);
   }
 
   @Get('me/modules')
   @ApiOperation({ summary: 'Obtener módulos activos' })
-  getActiveModules(@CurrentUser('sub') userId: string) {
-    return this.getActiveModulesUseCase.execute(userId);
+  async getActiveModules(@CurrentUser('sub') userId: string) {
+    const mods = await this.getActiveModulesUseCase.execute(userId);
+    return mods.map(UsersController.mapModule);
+  }
+
+  // ─── Presentation mapping helpers ─────────────────────
+
+  /**
+   * Maps a UserProfile to the old Prisma-style flat shape:
+   * { id, email, name, avatarUrl, createdAt, settings: {...}, modules: [...] }
+   */
+  static mapProfile(profile: UserProfile) {
+    return {
+      id: profile.user.id,
+      email: profile.user.email,
+      name: profile.user.name,
+      avatarUrl: profile.user.avatarUrl,
+      createdAt: profile.user.createdAt,
+      settings: profile.settings ? UsersController.mapSettings(profile.settings) : null,
+      modules: profile.modules.map(UsersController.mapModule),
+    };
+  }
+
+  /**
+   * Maps a User domain entity to the safe response shape (no passwordHash).
+   */
+  private static mapUserSafe(user: User) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+    };
+  }
+
+  /**
+   * Maps a UserSettings domain entity to the Prisma-style shape.
+   */
+  private static mapSettings(settings: UserSettings) {
+    return {
+      id: settings.id,
+      userId: settings.userId,
+      timezone: settings.timezone,
+      theme: settings.theme,
+      locale: settings.locale,
+      createdAt: settings.createdAt,
+      updatedAt: settings.updatedAt,
+    };
+  }
+
+  /**
+   * Maps a UserModule domain entity to the Prisma-style shape.
+   */
+  private static mapModule(mod: UserModule) {
+    return {
+      id: mod.id,
+      userId: mod.userId,
+      moduleKey: mod.moduleKey,
+      isActive: mod.isActive,
+      displayOrder: mod.displayOrder,
+      createdAt: mod.createdAt,
+    };
   }
 }

@@ -17,7 +17,7 @@ export class UserModulePrismaRepository implements UserModuleRepositoryPort {
     return modules.map(UserModuleMapper.toDomain);
   }
 
-  async upsertMany(userId: string, modules: UserModule[]): Promise<void> {
+  async upsertMany(userId: string, modules: UserModule[]): Promise<UserModule[]> {
     const operations = modules.map((mod) => {
       const data = UserModuleMapper.toPersistence(mod);
 
@@ -42,6 +42,7 @@ export class UserModulePrismaRepository implements UserModuleRepositoryPort {
       });
     });
 
-    await this.prisma.$transaction(operations);
+    const results = await this.prisma.$transaction(operations);
+    return results.map(UserModuleMapper.toDomain);
   }
 }

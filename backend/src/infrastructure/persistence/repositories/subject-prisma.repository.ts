@@ -3,8 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubjectMapper } from '../mappers/subject.mapper';
 import {
   SubjectRepositoryPort,
-  SubjectWithTopics,
-  SubjectWithDetails,
+  SubjectWithRelations,
+  SubjectWithFullDetails,
 } from '../../../application/ports/subject-repository.port';
 import { Subject } from '../../../domain/study';
 
@@ -15,13 +15,14 @@ export class SubjectPrismaRepository implements SubjectRepositoryPort {
   async findAllByPlanId(
     planId: string,
     userId: string,
-  ): Promise<SubjectWithTopics[]> {
+  ): Promise<SubjectWithRelations[]> {
     const subjects = await this.prisma.subject.findMany({
       where: {
         studyPlanId: planId,
         studyPlan: { userId },
       },
       include: {
+        _count: { select: { topics: true } },
         topics: {
           orderBy: { displayOrder: 'asc' },
         },
@@ -29,15 +30,20 @@ export class SubjectPrismaRepository implements SubjectRepositoryPort {
       orderBy: { displayOrder: 'asc' },
     });
 
-    return subjects.map((subject) => ({
-      subject: SubjectMapper.toDomain(subject),
-      topics: subject.topics.map((topic) => ({
-        id: topic.id,
-        name: topic.name,
-        status: topic.status,
-        masteryLevel: topic.masteryLevel,
-        systemMasteryLevel: topic.systemMasteryLevel,
-        displayOrder: topic.displayOrder,
+    return subjects.map((s) => ({
+      subject: SubjectMapper.toDomain(s),
+      _count: { topics: s._count.topics },
+      topics: s.topics.map((t) => ({
+        id: t.id,
+        subjectId: t.subjectId,
+        name: t.name,
+        description: t.description,
+        status: t.status,
+        masteryLevel: t.masteryLevel,
+        systemMasteryLevel: t.systemMasteryLevel,
+        displayOrder: t.displayOrder,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
       })),
     }));
   }
@@ -45,7 +51,7 @@ export class SubjectPrismaRepository implements SubjectRepositoryPort {
   async findByIdWithOwnership(
     id: string,
     userId: string,
-  ): Promise<SubjectWithDetails | null> {
+  ): Promise<SubjectWithFullDetails | null> {
     const subject = await this.prisma.subject.findFirst({
       where: { id },
       include: {
@@ -60,15 +66,21 @@ export class SubjectPrismaRepository implements SubjectRepositoryPort {
 
     return {
       subject: SubjectMapper.toDomain(subject),
-      planName: subject.studyPlan.name,
-      planUserId: subject.studyPlan.userId,
-      topics: subject.topics.map((topic) => ({
-        id: topic.id,
-        name: topic.name,
-        status: topic.status,
-        masteryLevel: topic.masteryLevel,
-        systemMasteryLevel: topic.systemMasteryLevel,
-        displayOrder: topic.displayOrder,
+      studyPlan: {
+        userId: subject.studyPlan.userId,
+        name: subject.studyPlan.name,
+      },
+      topics: subject.topics.map((t) => ({
+        id: t.id,
+        subjectId: t.subjectId,
+        name: t.name,
+        description: t.description,
+        status: t.status,
+        masteryLevel: t.masteryLevel,
+        systemMasteryLevel: t.systemMasteryLevel,
+        displayOrder: t.displayOrder,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
       })),
     };
   }
@@ -105,9 +117,13 @@ export class SubjectPrismaRepository implements SubjectRepositoryPort {
     return SubjectMapper.toDomain(updated);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<Subject> {
+    const record = await this.prisma.subject.findUnique({
+      where: { id },
+    });
     await this.prisma.subject.delete({
       where: { id },
     });
+    return record ? SubjectMapper.toDomain(record) : (undefined as unknown as Subject);
   }
 }

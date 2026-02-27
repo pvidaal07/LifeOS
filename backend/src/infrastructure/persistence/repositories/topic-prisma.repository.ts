@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TopicMapper } from '../mappers/topic.mapper';
 import {
   TopicRepositoryPort,
-  TopicWithDetails,
+  TopicWithFullDetails,
 } from '../../../application/ports/topic-repository.port';
 import { Topic } from '../../../domain/study';
 
@@ -31,7 +31,7 @@ export class TopicPrismaRepository implements TopicRepositoryPort {
   async findByIdWithOwnership(
     id: string,
     userId: string,
-  ): Promise<TopicWithDetails | null> {
+  ): Promise<TopicWithFullDetails | null> {
     const topic = await this.prisma.topic.findFirst({
       where: { id },
       include: {
@@ -57,23 +57,44 @@ export class TopicPrismaRepository implements TopicRepositoryPort {
 
     return {
       topic: TopicMapper.toDomain(topic),
-      subjectName: topic.subject.name,
-      subjectColor: topic.subject.color,
-      planName: topic.subject.studyPlan.name,
-      planUserId: topic.subject.studyPlan.userId,
-      recentSessions: topic.studySessions.map((session) => ({
-        id: session.id,
-        sessionType: session.sessionType,
-        durationMinutes: session.durationMinutes,
-        qualityRating: session.qualityRating,
-        studiedAt: session.studiedAt,
+      subject: {
+        id: topic.subject.id,
+        studyPlanId: topic.subject.studyPlanId,
+        name: topic.subject.name,
+        description: topic.subject.description,
+        color: topic.subject.color,
+        displayOrder: topic.subject.displayOrder,
+        createdAt: topic.subject.createdAt,
+        updatedAt: topic.subject.updatedAt,
+        studyPlan: {
+          userId: topic.subject.studyPlan.userId,
+          name: topic.subject.studyPlan.name,
+        },
+      },
+      studySessions: topic.studySessions.map((s) => ({
+        id: s.id,
+        topicId: s.topicId,
+        userId: s.userId,
+        sessionType: s.sessionType,
+        durationMinutes: s.durationMinutes,
+        qualityRating: s.qualityRating,
+        notes: s.notes,
+        studiedAt: s.studiedAt,
+        createdAt: s.createdAt,
       })),
-      recentReviews: topic.reviewSchedules.map((review) => ({
-        id: review.id,
-        scheduledDate: review.scheduledDate,
-        completedDate: review.completedDate,
-        status: review.status,
-        result: review.result,
+      reviewSchedules: topic.reviewSchedules.map((r) => ({
+        id: r.id,
+        topicId: r.topicId,
+        userId: r.userId,
+        scheduledDate: r.scheduledDate,
+        completedDate: r.completedDate,
+        status: r.status,
+        result: r.result,
+        urgencyScore: r.urgencyScore,
+        intervalDays: r.intervalDays,
+        reviewNumber: r.reviewNumber,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
       })),
     };
   }
@@ -126,10 +147,14 @@ export class TopicPrismaRepository implements TopicRepositoryPort {
     });
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<Topic> {
+    const record = await this.prisma.topic.findUnique({
+      where: { id },
+    });
     await this.prisma.topic.delete({
       where: { id },
     });
+    return record ? TopicMapper.toDomain(record) : (undefined as unknown as Topic);
   }
 
   async countSessionsByTopicAndUser(

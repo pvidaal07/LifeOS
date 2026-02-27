@@ -1,17 +1,17 @@
 import { SubjectNotFoundError } from '../../../domain/study';
-import { SubjectRepositoryPort, SubjectWithDetails } from '../../ports/subject-repository.port';
+import { SubjectRepositoryPort, SubjectWithFullDetails } from '../../ports/subject-repository.port';
 
 export class GetSubjectUseCase {
   constructor(private readonly subjectRepo: SubjectRepositoryPort) {}
 
-  async execute(subjectId: string, userId: string): Promise<SubjectWithDetails> {
+  async execute(subjectId: string, userId: string): Promise<SubjectWithFullDetails> {
     const result = await this.subjectRepo.findByIdWithOwnership(subjectId, userId);
     if (!result) {
       throw new SubjectNotFoundError(subjectId);
     }
 
     // Verify ownership through plan → user chain
-    if (result.planUserId !== userId) {
+    if (result.studyPlan.userId !== userId) {
       throw new SubjectNotFoundError(subjectId);
     }
 

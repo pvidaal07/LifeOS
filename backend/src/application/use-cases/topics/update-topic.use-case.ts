@@ -17,7 +17,7 @@ export class UpdateTopicUseCase {
       throw new TopicNotFoundError(topicId);
     }
 
-    if (result.planUserId !== userId) {
+    if (result.subject.studyPlan.userId !== userId) {
       throw new TopicNotFoundError(topicId);
     }
 

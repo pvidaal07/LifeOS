@@ -3,8 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StudyPlanMapper } from '../mappers/study-plan.mapper';
 import {
   StudyPlanRepositoryPort,
-  StudyPlanWithCounts,
-  StudyPlanWithDetails,
+  StudyPlanWithSubjects,
+  StudyPlanWithFullDetails,
 } from '../../../application/ports/study-plan-repository.port';
 import { StudyPlan } from '../../../domain/study';
 
@@ -12,7 +12,7 @@ import { StudyPlan } from '../../../domain/study';
 export class StudyPlanPrismaRepository implements StudyPlanRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllByUserId(userId: string): Promise<StudyPlanWithCounts[]> {
+  async findAllByUserId(userId: string): Promise<StudyPlanWithSubjects[]> {
     const plans = await this.prisma.studyPlan.findMany({
       where: { userId },
       include: {
@@ -28,24 +28,32 @@ export class StudyPlanPrismaRepository implements StudyPlanRepositoryPort {
 
     return plans.map((plan) => ({
       plan: StudyPlanMapper.toDomain(plan),
-      subjectCount: plan.subjects.length,
-      topicCount: plan.subjects.reduce(
-        (sum, subject) => sum + subject._count.topics,
-        0,
-      ),
+      subjects: plan.subjects.map((s) => ({
+        id: s.id,
+        studyPlanId: s.studyPlanId,
+        name: s.name,
+        description: s.description,
+        color: s.color,
+        displayOrder: s.displayOrder,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        _count: { topics: s._count.topics },
+      })),
     }));
   }
 
   async findByIdAndUserId(
     id: string,
     userId: string,
-  ): Promise<StudyPlanWithDetails | null> {
+  ): Promise<StudyPlanWithFullDetails | null> {
     const plan = await this.prisma.studyPlan.findFirst({
       where: { id, userId },
       include: {
         subjects: {
           include: {
-            _count: { select: { topics: true } },
+            topics: {
+              orderBy: { displayOrder: 'asc' },
+            },
           },
           orderBy: { displayOrder: 'asc' },
         },
@@ -56,12 +64,27 @@ export class StudyPlanPrismaRepository implements StudyPlanRepositoryPort {
 
     return {
       plan: StudyPlanMapper.toDomain(plan),
-      subjects: plan.subjects.map((subject) => ({
-        id: subject.id,
-        name: subject.name,
-        color: subject.color,
-        displayOrder: subject.displayOrder,
-        topicCount: subject._count.topics,
+      subjects: plan.subjects.map((s) => ({
+        id: s.id,
+        studyPlanId: s.studyPlanId,
+        name: s.name,
+        description: s.description,
+        color: s.color,
+        displayOrder: s.displayOrder,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        topics: s.topics.map((t) => ({
+          id: t.id,
+          subjectId: t.subjectId,
+          name: t.name,
+          description: t.description,
+          masteryLevel: t.masteryLevel,
+          systemMasteryLevel: t.systemMasteryLevel,
+          status: t.status,
+          displayOrder: t.displayOrder,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        })),
       })),
     };
   }
@@ -87,9 +110,21 @@ export class StudyPlanPrismaRepository implements StudyPlanRepositoryPort {
     return StudyPlanMapper.toDomain(updated);
   }
 
-  async delete(id: string, userId: string): Promise<void> {
+  async delete(id: string, userId: string): Promise<StudyPlan> {
+    const record = await this.prisma.studyPlan.findFirst({
+      where: { id, userId },
+    });
+    if (record) {
+      await this.prisma.studyPlan.deleteMany({
+        where: { id, userId },
+      });
+      return StudyPlanMapper.toDomain(record);
+    }
+    // If not found, use deleteMany which won't throw
     await this.prisma.studyPlan.deleteMany({
       where: { id, userId },
     });
+    // Return a dummy — the use-case checks existence before calling delete
+    return undefined as unknown as StudyPlan;
   }
 }

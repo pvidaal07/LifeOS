@@ -16,5 +16,9 @@ export abstract class ValueObject<T> {
     return JSON.stringify(this._value) === JSON.stringify(other._value);
   }
 
+  toJSON(): T {
+    return this._value;
+  }
+
   protected abstract validate(value: T): void;
 }

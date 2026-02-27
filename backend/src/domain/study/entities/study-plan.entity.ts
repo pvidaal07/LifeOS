@@ -87,4 +87,17 @@ export class StudyPlan extends AggregateRoot {
     if (params.displayOrder !== undefined) this._displayOrder = params.displayOrder;
     this._updatedAt = new Date();
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      name: this.name,
+      description: this.description,
+      status: this.status.value,
+      displayOrder: this.displayOrder,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }

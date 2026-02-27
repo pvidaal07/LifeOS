@@ -60,4 +60,15 @@ export class UserModule extends Entity {
     if (params.isActive !== undefined) this._isActive = params.isActive;
     if (params.displayOrder !== undefined) this._displayOrder = params.displayOrder;
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      moduleKey: this.moduleKey,
+      displayOrder: this.displayOrder,
+      isActive: this.isActive,
+      createdAt: this.createdAt,
+    };
+  }
 }

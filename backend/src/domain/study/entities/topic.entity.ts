@@ -112,4 +112,19 @@ export class Topic extends Entity {
     this._status = newStatus;
     this._updatedAt = new Date();
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      subjectId: this.subjectId,
+      name: this.name,
+      description: this.description,
+      status: this.status.value,
+      masteryLevel: this.masteryLevel,
+      systemMasteryLevel: this.systemMasteryLevel,
+      displayOrder: this.displayOrder,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }

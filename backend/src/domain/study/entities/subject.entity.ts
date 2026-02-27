@@ -83,4 +83,17 @@ export class Subject extends Entity {
     if (params.displayOrder !== undefined) this._displayOrder = params.displayOrder;
     this._updatedAt = new Date();
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      studyPlanId: this.studyPlanId,
+      name: this.name,
+      description: this.description,
+      color: this.color,
+      displayOrder: this.displayOrder,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }

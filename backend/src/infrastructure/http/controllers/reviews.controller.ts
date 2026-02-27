@@ -17,6 +17,8 @@ import { SkipReviewUseCase } from '../../../application/use-cases/reviews';
 import { RecalculateUrgencyUseCase } from '../../../application/use-cases/reviews';
 import { JwtAuthGuard, CurrentUser } from '../../auth';
 import { CompleteReviewDto } from '../dto/reviews';
+import { ReviewScheduleWithTopic } from '../../../application/ports/review-repository.port';
+import { ReviewSchedule } from '../../../domain/review';
 
 @ApiTags('Reviews')
 @ApiBearerAuth()
@@ -36,19 +38,20 @@ export class ReviewsController {
 
   @Get('pending')
   @ApiOperation({ summary: 'Obtener repasos pendientes de hoy (ordenados por urgencia)' })
-  getPending(@CurrentUser('sub') userId: string) {
-    return this.getPendingReviewsUseCase.execute(userId);
+  async getPending(@CurrentUser('sub') userId: string) {
+    const results = await this.getPendingReviewsUseCase.execute(userId);
+    return results.map((r) => this.mapReviewWithTopic(r));
   }
 
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Completar repaso y programar el siguiente' })
-  complete(
+  async complete(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
     @Body() dto: CompleteReviewDto,
   ) {
-    return this.completeReviewUseCase.execute({
+    const result = await this.completeReviewUseCase.execute({
       reviewId: id,
       userId,
       result: dto.result,
@@ -56,19 +59,81 @@ export class ReviewsController {
       qualityRating: dto.qualityRating,
       notes: dto.notes,
     });
+    // Old API returned { completedReview, nextReview } as flat Prisma records
+    return {
+      completedReview: this.mapReviewFlat(result.completedReview),
+      nextReview: this.mapReviewFlat(result.nextReview),
+    };
   }
 
   @Post(':id/skip')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Saltar repaso (se reprograma para mañana)' })
-  skip(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.skipReviewUseCase.execute(id, userId);
+  async skip(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    const rescheduled = await this.skipReviewUseCase.execute(id, userId);
+    // Old API returned the rescheduled review as a flat Prisma record
+    return this.mapReviewFlat(rescheduled);
   }
 
   @Post('recalculate-urgency')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Recalcular urgencia de todos los repasos pendientes' })
-  recalculateUrgency(@CurrentUser('sub') userId: string) {
-    return this.recalculateUrgencyUseCase.execute(userId);
+  async recalculateUrgency(@CurrentUser('sub') userId: string) {
+    // Old API returned void (no response body)
+    await this.recalculateUrgencyUseCase.execute(userId);
+  }
+
+  // ─── Presentation mapping helpers ─────────────────────
+
+  /**
+   * Maps a ReviewScheduleWithTopic (domain read-model) to the old Prisma-style shape
+   * with nested topic: { name, subject: { name, color, studyPlan: { name } } }.
+   */
+  private mapReviewWithTopic(r: ReviewScheduleWithTopic) {
+    const review = r.review;
+    return {
+      id: review.id,
+      topicId: review.topicId,
+      scheduledDate: review.scheduledDate,
+      completedDate: review.completedDate,
+      status: review.status.value,
+      result: review.result ? review.result.value : null,
+      urgencyScore: review.urgencyScore,
+      intervalDays: review.intervalDays,
+      reviewNumber: review.reviewNumber,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      topic: {
+        name: r.topicName,
+        subject: {
+          name: r.subjectName,
+          color: r.subjectColor,
+          studyPlan: {
+            name: r.planName,
+          },
+        },
+      },
+    };
+  }
+
+  /**
+   * Maps a ReviewSchedule domain entity to a flat Prisma-style record
+   * (no topic nesting — used for complete/skip responses).
+   */
+  private mapReviewFlat(review: ReviewSchedule) {
+    return {
+      id: review.id,
+      userId: review.userId,
+      topicId: review.topicId,
+      scheduledDate: review.scheduledDate,
+      completedDate: review.completedDate,
+      status: review.status.value,
+      result: review.result ? review.result.value : null,
+      urgencyScore: review.urgencyScore,
+      intervalDays: review.intervalDays,
+      reviewNumber: review.reviewNumber,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+    };
   }
 }

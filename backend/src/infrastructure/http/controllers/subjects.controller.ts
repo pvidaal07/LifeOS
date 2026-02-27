@@ -19,6 +19,8 @@ import { UpdateSubjectUseCase } from '../../../application/use-cases/subjects';
 import { DeleteSubjectUseCase } from '../../../application/use-cases/subjects';
 import { JwtAuthGuard, CurrentUser } from '../../auth';
 import { CreateSubjectDto, UpdateSubjectDto } from '../dto/subjects';
+import { SubjectWithRelations, SubjectWithFullDetails } from '../../../application/ports/subject-repository.port';
+import { Subject } from '../../../domain/study';
 
 @ApiTags('Subjects')
 @ApiBearerAuth()
@@ -40,48 +42,80 @@ export class SubjectsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar asignaturas de un plan' })
-  findByPlan(
+  async findByPlan(
     @Query('planId') planId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.getSubjectsUseCase.execute(planId, userId);
+    const results = await this.getSubjectsUseCase.execute(planId, userId);
+    // Map to old Prisma-style: flat subject with _count.topics and topics[]
+    return results.map((r) => this.mapSubjectWithRelations(r));
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener asignatura con temas' })
-  findOne(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.getSubjectUseCase.execute(id, userId);
+  async findOne(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    const result = await this.getSubjectUseCase.execute(id, userId);
+    // Map to old Prisma-style: flat subject with studyPlan and topics[]
+    return this.mapSubjectWithDetails(result);
   }
 
   @Post()
   @ApiOperation({ summary: 'Crear asignatura' })
-  create(@CurrentUser('sub') userId: string, @Body() dto: CreateSubjectDto) {
-    return this.createSubjectUseCase.execute(userId, {
+  async create(@CurrentUser('sub') userId: string, @Body() dto: CreateSubjectDto) {
+    const subject = await this.createSubjectUseCase.execute(userId, {
       planId: dto.studyPlanId,
       name: dto.name,
       description: dto.description,
       color: dto.color,
     });
+    return this.mapSubjectFlat(subject);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar asignatura' })
-  update(
+  async update(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateSubjectDto,
   ) {
-    return this.updateSubjectUseCase.execute(id, userId, {
+    const subject = await this.updateSubjectUseCase.execute(id, userId, {
       name: dto.name,
       description: dto.description,
       color: dto.color,
       displayOrder: dto.displayOrder,
     });
+    return this.mapSubjectFlat(subject);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar asignatura' })
-  remove(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.deleteSubjectUseCase.execute(id, userId);
+  async remove(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    const subject = await this.deleteSubjectUseCase.execute(id, userId);
+    return this.mapSubjectFlat(subject);
+  }
+
+  // ─── Presentation mapping helpers ─────────────────────
+
+  /** Maps a Subject domain entity to a flat Prisma-style record */
+  private mapSubjectFlat(subject: Subject) {
+    return subject.toJSON();
+  }
+
+  /** Maps findAll result: flat subject with _count.topics and topics[] */
+  private mapSubjectWithRelations(result: SubjectWithRelations) {
+    return {
+      ...result.subject.toJSON(),
+      _count: result._count,
+      topics: result.topics,
+    };
+  }
+
+  /** Maps findOne result: flat subject with studyPlan and topics[] */
+  private mapSubjectWithDetails(result: SubjectWithFullDetails) {
+    return {
+      ...result.subject.toJSON(),
+      studyPlan: result.studyPlan,
+      topics: result.topics,
+    };
   }
 }

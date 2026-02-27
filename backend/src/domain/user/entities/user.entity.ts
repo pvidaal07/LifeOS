@@ -89,4 +89,16 @@ export class User extends AggregateRoot {
     this._isActive = true;
     this._updatedAt = new Date();
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      email: this.email,
+      name: this.name,
+      avatarUrl: this.avatarUrl,
+      isActive: this.isActive,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }
