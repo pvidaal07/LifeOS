@@ -11,6 +11,11 @@ export class ReviewResult extends ValueObject<ReviewResultValue> {
   static readonly BAD = new ReviewResult('bad');
 
   static create(value: string): ReviewResult {
+    if (!VALID_RESULTS.includes(value as ReviewResultValue)) {
+      throw new Error(
+        `Resultado de review inválido: '${value}'. Valores permitidos: ${VALID_RESULTS.join(', ')}`,
+      );
+    }
     return new ReviewResult(value as ReviewResultValue);
   }
 

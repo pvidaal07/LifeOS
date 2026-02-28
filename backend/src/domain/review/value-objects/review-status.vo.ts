@@ -10,6 +10,9 @@ export class ReviewStatus extends ValueObject<ReviewStatusValue> {
   static readonly SKIPPED = new ReviewStatus('skipped');
 
   static create(value: string): ReviewStatus {
+    if (!VALID_STATUSES.includes(value as ReviewStatusValue)) {
+      throw new Error(`Estado de review inválido: '${value}'`);
+    }
     return new ReviewStatus(value as ReviewStatusValue);
   }
 

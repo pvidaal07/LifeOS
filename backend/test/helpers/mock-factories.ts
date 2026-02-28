@@ -56,6 +56,7 @@ export function createMockReviewSettingsRepository(): {
 } {
   return {
     findByUserId: vi.fn(),
+    upsert: vi.fn(),
   };
 }
 

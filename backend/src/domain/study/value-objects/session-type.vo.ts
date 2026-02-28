@@ -10,6 +10,11 @@ export class SessionType extends ValueObject<SessionTypeValue> {
   static readonly PRACTICE = new SessionType('practice');
 
   static create(value: string): SessionType {
+    if (!VALID_TYPES.includes(value as SessionTypeValue)) {
+      throw new Error(
+        `Tipo de sesión inválido: '${value}'. Valores permitidos: ${VALID_TYPES.join(', ')}`,
+      );
+    }
     return new SessionType(value as SessionTypeValue);
   }
 

@@ -127,12 +127,14 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
   /**
    * Fetch completed reviews for a topic — used to calculate system mastery.
    * Returns only the fields needed for mastery computation.
+   * Scoped to userId for data isolation.
    */
   async findCompletedByTopicId(
     topicId: string,
+    userId: string,
   ): Promise<CompletedReviewData[]> {
     const reviews = await this.prisma.reviewSchedule.findMany({
-      where: { topicId, status: 'completed' },
+      where: { topicId, userId, status: 'completed' },
       orderBy: { completedDate: 'asc' },
       select: {
         result: true,

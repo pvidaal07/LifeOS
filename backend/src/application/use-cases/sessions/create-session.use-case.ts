@@ -1,9 +1,10 @@
-import { StudySession, SessionType } from '../../../domain/study';
-import { ReviewSchedule, ReviewResult, ReviewSettings, SpacedRepetitionService } from '../../../domain/review';
+import { StudySession, SessionType, TopicNotFoundError } from '../../../domain/study';
+import { ReviewSchedule, ReviewResult, SpacedRepetitionService } from '../../../domain/review';
 import { SessionRepositoryPort, StudySessionWithDetails } from '../../ports/session-repository.port';
 import { TopicRepositoryPort } from '../../ports/topic-repository.port';
 import { ReviewRepositoryPort } from '../../ports/review-repository.port';
 import { ReviewSettingsRepositoryPort } from '../../ports/review-settings-repository.port';
+import { ReviewCompletionService } from '../reviews/review-completion.service';
 
 export interface CreateSessionInput {
   topicId: string;
@@ -15,16 +16,28 @@ export interface CreateSessionInput {
 }
 
 export class CreateSessionUseCase {
-  private readonly spacedRepetition = new SpacedRepetitionService();
+  private readonly completionService: ReviewCompletionService;
 
   constructor(
     private readonly sessionRepo: SessionRepositoryPort,
     private readonly topicRepo: TopicRepositoryPort,
     private readonly reviewRepo: ReviewRepositoryPort,
     private readonly reviewSettingsRepo: ReviewSettingsRepositoryPort,
-  ) {}
+  ) {
+    this.completionService = new ReviewCompletionService(
+      reviewRepo,
+      reviewSettingsRepo,
+      topicRepo,
+    );
+  }
 
   async execute(userId: string, input: CreateSessionInput): Promise<StudySessionWithDetails> {
+    // Verify the topic exists and belongs to the user
+    const topicDetails = await this.topicRepo.findByIdWithOwnership(input.topicId, userId);
+    if (!topicDetails || topicDetails.subject.studyPlan.userId !== userId) {
+      throw new TopicNotFoundError(input.topicId);
+    }
+
     // Count existing sessions for this topic to determine if first time
     const sessionCount = await this.topicRepo.countSessionsByTopicAndUser(
       input.topicId,
@@ -53,12 +66,9 @@ export class CreateSessionUseCase {
 
     // On first session: schedule first review and mark topic in_progress
     if (isFirstTime) {
-      const topicDetails = await this.topicRepo.findByIdWithOwnership(input.topicId, userId);
-      if (topicDetails) {
-        const topic = topicDetails.topic;
-        topic.markInProgress();
-        await this.topicRepo.update(topic);
-      }
+      const topic = topicDetails.topic;
+      topic.markInProgress();
+      await this.topicRepo.update(topic);
 
       // Schedule first review
       const settings = await this.reviewSettingsRepo.findByUserId(userId);
@@ -89,8 +99,8 @@ export class CreateSessionUseCase {
    * If a pending ReviewSchedule exists for the topic, complete it automatically
    * and recalculate the topic's system mastery level.
    *
-   * This ensures that study sessions registered via "Estudiar" with type "review"
-   * have the same impact on the mastery system as completing a review from /reviews.
+   * Uses the shared ReviewCompletionService to ensure consistent behavior
+   * with CompleteReviewUseCase (same algorithm, same mastery recalculation).
    */
   private async completeReviewForTopic(
     userId: string,
@@ -100,58 +110,8 @@ export class CreateSessionUseCase {
     const pendingReview = await this.reviewRepo.findPendingByTopicId(topicId, userId);
     if (!pendingReview) return;
 
-    // Map qualityRating to ReviewResult
     const result = this.mapQualityToResult(qualityRating);
-
-    // Complete the review (domain state transition)
-    pendingReview.complete(result, new Date());
-
-    // Load user settings for interval calculation
-    const settings = await this.reviewSettingsRepo.findByUserId(userId);
-    const effectiveSettings = settings ?? ReviewSettings.createDefault('default', userId);
-
-    // Calculate next interval and schedule next review
-    const nextIntervalDays = this.spacedRepetition.calculateNextInterval(
-      pendingReview.intervalDays,
-      result,
-      effectiveSettings,
-    );
-    // Use the later of scheduledDate or now as base date:
-    // - Early completion → count from original scheduledDate (preserves calendar spacing)
-    // - Late completion  → count from today (already past schedule)
-    const baseDate = pendingReview.scheduledDate > new Date() ? pendingReview.scheduledDate : new Date();
-    const nextDate = this.spacedRepetition.calculateNextReviewDate(baseDate, nextIntervalDays);
-
-    const nextReview = ReviewSchedule.scheduleNext({
-      id: crypto.randomUUID(),
-      userId,
-      topicId,
-      scheduledDate: nextDate,
-      intervalDays: nextIntervalDays,
-      reviewNumber: pendingReview.reviewNumber + 1,
-    });
-
-    // Calculate updated system mastery
-    const completedReviews = await this.reviewRepo.findCompletedByTopicId(topicId);
-    completedReviews.push({
-      result: result.value,
-      intervalDays: pendingReview.intervalDays,
-      completedDate: new Date(),
-    });
-
-    const systemMastery = this.spacedRepetition.calculateSystemMastery(
-      completedReviews.map((r) => ({
-        result: ReviewResult.create(r.result),
-        intervalDays: r.intervalDays,
-        completedDate: r.completedDate,
-      })),
-    );
-    const topicStatus = this.spacedRepetition.determineTopicStatus(systemMastery);
-
-    // Persist: completed review, next review, mastery update
-    await this.reviewRepo.save(pendingReview);
-    await this.reviewRepo.save(nextReview);
-    await this.topicRepo.updateMastery(topicId, systemMastery, topicStatus);
+    await this.completionService.completeAndScheduleNext(pendingReview, result, userId);
   }
 
   /**
