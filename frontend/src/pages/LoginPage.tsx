@@ -4,7 +4,7 @@ import { useLogin } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import bannerImage from '../public/banner.png';
-import logoText from '../public/logotipo-texto.png';
+import logoIcon from '../public/logotipo.png';
 
 export function LoginPage() {
   const { mutate: login, isPending } = useLogin();
@@ -26,17 +26,26 @@ export function LoginPage() {
       <div className="auth-banner-scrim absolute inset-0" />
 
       <div className="auth-card relative mx-4 w-full max-w-[460px] sm:mx-6">
-        <div className="flex flex-col items-center space-y-1 text-center">
-          <img src={logoText} alt="LifeOS" className="h-12 w-auto sm:h-14" />
-          <p className="text-sm text-white/70">
-            Tu sistema operativo personal
+        {/* Brand mark */}
+        <div className="flex items-center justify-center gap-2.5">
+          <img src={logoIcon} alt="LifeOS mark" className="h-12 w-12 sm:h-14 sm:w-14" />
+          <span className="text-xl font-semibold text-slate-800">LifeOS</span>
+        </div>
+
+        {/* Title + subtitle */}
+        <div className="mt-5 text-center">
+          <h1 className="text-[28px] font-bold leading-tight text-slate-800 sm:text-[32px]">
+            Bienvenido a LifeOS
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-500">
+            Inicia sesión en tu sistema de productividad personal
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-7 space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-white/90">
-              Email
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+              Correo electrónico
             </label>
             <Input
               id="email"
@@ -51,8 +60,8 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-white/90">
-              Contrasena
+            <label htmlFor="password" className="text-sm font-medium text-slate-700">
+              Contraseña
             </label>
             <Input
               id="password"
@@ -67,14 +76,17 @@ export function LoginPage() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Entrando...' : 'Iniciar sesion'}
+            {isPending ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-white/60">
-          No tienes cuenta?{' '}
-          <Link to="/register" className="font-medium text-white/90 transition-colors hover:text-white hover:underline">
-            Registrate
+        <p className="mt-6 text-center text-sm text-slate-500">
+          ¿No tienes una cuenta?{' '}
+          <Link
+            to="/register"
+            className="font-medium text-[hsl(221,83%,53%)] transition-colors hover:text-[hsl(224,64%,33%)] hover:underline"
+          >
+            Regístrate
           </Link>
         </p>
       </div>

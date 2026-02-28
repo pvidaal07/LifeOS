@@ -1,14 +1,16 @@
-import { NavLink } from 'react-router-dom';
+import { useEffect, useCallback } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
   RotateCcw,
   Dumbbell,
   UtensilsCrossed,
+  X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useUiStore } from '../../stores/ui.store';
 import logoMark from '../../public/logotipo.png';
-import logoText from '../../public/logotipo-texto.png';
 
 type NavigationItem = {
   name: string;
@@ -19,28 +21,44 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, moduleKey: 'dashboard' },
+  { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard, moduleKey: 'dashboard' },
   { name: 'Estudios', href: '/studies', icon: BookOpen, moduleKey: 'studies' },
   { name: 'Repasos', href: '/reviews', icon: RotateCcw, moduleKey: 'studies' },
   { name: 'Deporte', href: '/sports', icon: Dumbbell, moduleKey: 'sports', disabled: true },
   { name: 'Nutricion', href: '/nutrition', icon: UtensilsCrossed, moduleKey: 'nutrition', disabled: true },
 ];
 
-export function Sidebar() {
+/** Shared sidebar content used in both desktop and mobile drawer. */
+function SidebarContent({ onClose }: { onClose?: () => void }) {
   // TODO: Filter modules by user_modules.
   const visibleModules = navigation;
 
   return (
-    <aside className="hidden w-72 border-r border-border bg-surface lg:flex lg:flex-col">
-      <div className="flex h-20 items-center border-b border-border px-6">
+    <>
+      {/* Brand */}
+      <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
         <div className="flex items-center gap-3">
-          <img src={logoMark} alt="LifeOS mark" className="h-9 w-9 rounded-md border border-border bg-canvas p-1" />
-          <img src={logoText} alt="LifeOS" className="h-6 w-auto" />
+          <img src={logoMark} alt="LifeOS" className="h-9 w-9 rounded-lg" />
+          <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
+            LifeOS
+          </span>
         </div>
+        {/* Close button — visible only in mobile drawer */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-muted transition-colors hover:bg-white/10 hover:text-sidebar-foreground lg:hidden"
+            aria-label="Close navigation menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
+      {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-1 px-4 py-5" aria-label="Primary">
-        <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.08em] text-text-muted">
+        <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.08em] text-sidebar-muted">
           Workspace
         </p>
         {visibleModules.map((item) => (
@@ -48,11 +66,11 @@ export function Sidebar() {
             <div
               key={item.href}
               aria-disabled="true"
-              className="flex items-center gap-3 rounded-lg border border-dashed border-border/80 bg-canvas-muted px-3 py-2.5 text-sm font-medium text-text-muted opacity-75"
+              className="flex items-center gap-3 rounded-lg border border-dashed border-white/10 px-3 py-2.5 text-sm font-medium text-sidebar-muted/50"
             >
               <item.icon className="h-4 w-4" />
               <span>{item.name}</span>
-              <span className="ml-auto rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] uppercase tracking-wide">
+              <span className="ml-auto rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sidebar-muted/60">
                 Soon
               </span>
             </div>
@@ -64,8 +82,8 @@ export function Sidebar() {
                 cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200',
                   isActive
-                    ? 'bg-brand-secondary-100 text-brand-secondary-900 shadow-subtle'
-                    : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
+                    ? 'bg-sidebar-active text-sidebar-foreground'
+                    : 'text-sidebar-muted hover:bg-white/[0.06] hover:text-sidebar-foreground',
                 )
               }
             >
@@ -76,11 +94,68 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-border px-6 py-4">
-        <p className="text-xs text-text-muted">
+      {/* Footer */}
+      <div className="border-t border-white/10 px-6 py-4">
+        <p className="text-xs text-sidebar-muted/60">
           Study first release shell
         </p>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const isDrawerOpen = useUiStore((state) => state.isDrawerOpen);
+  const closeDrawer = useUiStore((state) => state.closeDrawer);
+  const { pathname } = useLocation();
+
+  // Close drawer on navigation
+  useEffect(() => {
+    closeDrawer();
+  }, [pathname, closeDrawer]);
+
+  // Close drawer on Escape key
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeDrawer();
+    },
+    [closeDrawer],
+  );
+
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isDrawerOpen, handleKeyDown]);
+
+  return (
+    <>
+      {/* ── Desktop sidebar (lg+) — unchanged ── */}
+      <aside className="hidden w-72 flex-col bg-gradient-to-b from-sidebar to-sidebar-to lg:flex">
+        <SidebarContent />
+      </aside>
+
+      {/* ── Mobile drawer (<lg) ── */}
+      {/* Backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-30 bg-black/50 transition-opacity duration-300 lg:hidden',
+          isDrawerOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={closeDrawer}
+        aria-hidden="true"
+      />
+
+      {/* Drawer panel */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-gradient-to-b from-sidebar to-sidebar-to transition-transform duration-300 ease-in-out lg:hidden',
+          isDrawerOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <SidebarContent onClose={closeDrawer} />
+      </aside>
+    </>
   );
 }

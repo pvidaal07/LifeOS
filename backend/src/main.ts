@@ -48,7 +48,7 @@ async function bootstrap() {
     .addTag('Topics', 'Temas')
     .addTag('Study Sessions', 'Sesiones de estudio')
     .addTag('Reviews', 'Repasos programados')
-    .addTag('Dashboard', 'Panel principal - Hoy')
+    .addTag('Inicio', 'Panel principal - Hoy')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

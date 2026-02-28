@@ -10,29 +10,37 @@ vi.mock('../hooks/useAuth', () => ({
 }));
 
 describe('Auth branding', () => {
-  it('renders logo and decorative banner on login page', () => {
+  it('renders icon mark, brand text, and decorative banner on login page', () => {
     const { container } = render(
       <MemoryRouter>
         <LoginPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByAltText('LifeOS').length).toBeGreaterThan(0);
-    expect(screen.getAllByAltText('LifeOS mark').length).toBeGreaterThan(0);
+    // Single icon mark logo
+    expect(screen.getByAltText('LifeOS mark')).toBeInTheDocument();
+    // Brand name text next to icon
+    expect(screen.getByText('LifeOS')).toBeInTheDocument();
+    // H1 title
+    expect(screen.getByRole('heading', { level: 1, name: 'Bienvenido a LifeOS' })).toBeInTheDocument();
 
     const banner = container.querySelector('img[aria-hidden="true"]');
     expect(banner).toHaveAttribute('alt', '');
   });
 
-  it('renders logo and decorative banner on register page', () => {
+  it('renders icon mark, brand text, and decorative banner on register page', () => {
     const { container } = render(
       <MemoryRouter>
         <RegisterPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByAltText('LifeOS').length).toBeGreaterThan(0);
-    expect(screen.getAllByAltText('LifeOS mark').length).toBeGreaterThan(0);
+    // Single icon mark logo
+    expect(screen.getByAltText('LifeOS mark')).toBeInTheDocument();
+    // Brand name text next to icon
+    expect(screen.getByText('LifeOS')).toBeInTheDocument();
+    // H1 title
+    expect(screen.getByRole('heading', { level: 1, name: 'Crear cuenta' })).toBeInTheDocument();
 
     const banner = container.querySelector('img[aria-hidden="true"]');
     expect(banner).toHaveAttribute('alt', '');

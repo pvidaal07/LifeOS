@@ -208,7 +208,7 @@ Esto levanta: PostgreSQL + Backend (con migraciones) + Frontend + Nginx en el pu
 | GET | `/api/v1/studies/reviews/pending` | Repasos pendientes |
 | POST | `/api/v1/studies/reviews/:id/complete` | Completar repaso |
 | POST | `/api/v1/studies/reviews/:id/skip` | Saltar repaso |
-| **Dashboard** | | |
+| **Inicio** | | |
 | GET | `/api/v1/dashboard` | Panel "Hoy" completo |
 
 ---

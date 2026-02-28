@@ -23,5 +23,5 @@ export const USER_MODULE_REPOSITORY = 'UserModuleRepositoryPort';
 export const PASSWORD_HASHER = 'PasswordHasherPort';
 export const AUTH_TOKEN = 'AuthTokenPort';
 
-// ── Dashboard ───────────────────────────────────
+// ── Inicio ───────────────────────────────────
 export const DASHBOARD_REPOSITORY = 'DashboardRepositoryPort';

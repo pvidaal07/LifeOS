@@ -51,6 +51,6 @@ export const USE_CASE_TOKENS = {
   GetReviewSettingsUseCase: 'GetReviewSettingsUseCase',
   UpdateReviewSettingsUseCase: 'UpdateReviewSettingsUseCase',
 
-  // ── Dashboard ─────────────────────────────────
+  // ── Inicio ─────────────────────────────────
   GetDashboardUseCase: 'GetDashboardUseCase',
 } as const;
