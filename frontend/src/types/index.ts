@@ -122,6 +122,18 @@ export interface CompleteReviewResponse {
   nextReview: ReviewSchedule | null;
 }
 
+export interface ReviewSettings {
+  id: string;
+  userId: string;
+  baseIntervals: number[];
+  perfectMultiplier: number;
+  goodMultiplier: number;
+  regularMultiplier: number;
+  badReset: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Dashboard ───────────────────────────────
 
 export interface DashboardData {

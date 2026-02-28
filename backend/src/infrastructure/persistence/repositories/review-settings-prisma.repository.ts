@@ -17,4 +17,23 @@ export class ReviewSettingsPrismaRepository
 
     return settings ? ReviewSettingsMapper.toDomain(settings) : null;
   }
+
+  async upsert(settings: ReviewSettings): Promise<ReviewSettings> {
+    const data = ReviewSettingsMapper.toPersistence(settings);
+
+    const result = await this.prisma.reviewSettings.upsert({
+      where: { userId: data.userId },
+      update: {
+        baseIntervals: data.baseIntervals,
+        perfectMultiplier: data.perfectMultiplier,
+        goodMultiplier: data.goodMultiplier,
+        regularMultiplier: data.regularMultiplier,
+        badReset: data.badReset,
+        updatedAt: data.updatedAt,
+      },
+      create: data,
+    });
+
+    return ReviewSettingsMapper.toDomain(result);
+  }
 }

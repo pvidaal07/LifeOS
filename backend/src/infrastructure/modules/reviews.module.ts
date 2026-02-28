@@ -30,6 +30,8 @@ import {
   CompleteReviewUseCase,
   SkipReviewUseCase,
   RecalculateUrgencyUseCase,
+  GetReviewSettingsUseCase,
+  UpdateReviewSettingsUseCase,
 } from '../../application/use-cases/reviews';
 
 // Application ports (types only)
@@ -82,6 +84,18 @@ import type { SessionRepositoryPort } from '../../application/ports/session-repo
       useFactory: (reviewRepo: ReviewRepositoryPort) =>
         new RecalculateUrgencyUseCase(reviewRepo),
       inject: [REVIEW_REPOSITORY],
+    },
+    {
+      provide: USE_CASE_TOKENS.GetReviewSettingsUseCase,
+      useFactory: (reviewSettingsRepo: ReviewSettingsRepositoryPort) =>
+        new GetReviewSettingsUseCase(reviewSettingsRepo),
+      inject: [REVIEW_SETTINGS_REPOSITORY],
+    },
+    {
+      provide: USE_CASE_TOKENS.UpdateReviewSettingsUseCase,
+      useFactory: (reviewSettingsRepo: ReviewSettingsRepositoryPort) =>
+        new UpdateReviewSettingsUseCase(reviewSettingsRepo),
+      inject: [REVIEW_SETTINGS_REPOSITORY],
     },
   ],
 })

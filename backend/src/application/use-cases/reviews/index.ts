@@ -4,3 +4,5 @@ export * from './complete-review.use-case';
 export * from './skip-review.use-case';
 export * from './schedule-first-review.use-case';
 export * from './recalculate-urgency.use-case';
+export * from './get-review-settings.use-case';
+export * from './update-review-settings.use-case';

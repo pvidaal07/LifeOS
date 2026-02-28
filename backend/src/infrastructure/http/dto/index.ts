@@ -17,4 +17,4 @@ export { CreateTopicDto, UpdateTopicDto } from './topics';
 export { CreateSessionDto } from './sessions';
 
 // Review
-export { CompleteReviewDto } from './reviews';
+export { CompleteReviewDto, UpdateReviewSettingsDto } from './reviews';

@@ -5,6 +5,7 @@ import type {
   Topic,
   StudySession,
   ReviewSchedule,
+  ReviewSettings,
   CompleteReviewResponse,
   DashboardData,
   ApiResponse,
@@ -90,6 +91,18 @@ export const studiesApi = {
 
   skipReview: (id: string) =>
     apiClient.post<ApiResponse<ReviewSchedule>>(`/studies/reviews/${id}/skip`),
+
+  getReviewSettings: () =>
+    apiClient.get<ApiResponse<ReviewSettings>>('/studies/reviews/settings'),
+
+  updateReviewSettings: (data: {
+    baseIntervals?: number[];
+    perfectMultiplier?: number;
+    goodMultiplier?: number;
+    regularMultiplier?: number;
+    badReset?: boolean;
+  }) =>
+    apiClient.patch<ApiResponse<ReviewSettings>>('/studies/reviews/settings', data),
 
   // ─── Dashboard ─────────────────────────────
   getDashboard: () =>

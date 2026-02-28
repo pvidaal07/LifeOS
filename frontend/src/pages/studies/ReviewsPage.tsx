@@ -1,13 +1,260 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock } from 'lucide-react';
+import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock, Settings, X, RotateCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
-import type { ReviewSchedule, ReviewResult } from '../../types';
+import type { ReviewSchedule, ReviewSettings, ReviewResult } from '../../types';
+
+function ReviewSettingsPanel({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['review-settings'],
+    queryFn: async () => {
+      const res = await studiesApi.getReviewSettings();
+      return res.data.data as ReviewSettings;
+    },
+  });
+
+  const [formData, setFormData] = useState<{
+    baseIntervals: string;
+    perfectMultiplier: string;
+    goodMultiplier: string;
+    regularMultiplier: string;
+    badReset: boolean;
+  } | null>(null);
+
+  // Initialize form data when settings load
+  const currentData = formData ?? (settings ? {
+    baseIntervals: settings.baseIntervals.join(', '),
+    perfectMultiplier: String(settings.perfectMultiplier),
+    goodMultiplier: String(settings.goodMultiplier),
+    regularMultiplier: String(settings.regularMultiplier),
+    badReset: settings.badReset,
+  } : null);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: {
+      baseIntervals?: number[];
+      perfectMultiplier?: number;
+      goodMultiplier?: number;
+      regularMultiplier?: number;
+      badReset?: boolean;
+    }) => studiesApi.updateReviewSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-settings'] });
+      toast.success('Configuración guardada');
+      onClose();
+    },
+    onError: () => {
+      toast.error('Error al guardar la configuración');
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentData) return;
+
+    const intervals = currentData.baseIntervals
+      .split(',')
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => !isNaN(n) && n > 0);
+
+    if (intervals.length === 0) {
+      toast.error('Debes indicar al menos un intervalo válido');
+      return;
+    }
+
+    const perfect = parseFloat(currentData.perfectMultiplier);
+    const good = parseFloat(currentData.goodMultiplier);
+    const regular = parseFloat(currentData.regularMultiplier);
+
+    if ([perfect, good, regular].some((n) => isNaN(n) || n < 1)) {
+      toast.error('Los multiplicadores deben ser números >= 1');
+      return;
+    }
+
+    updateMutation.mutate({
+      baseIntervals: intervals,
+      perfectMultiplier: perfect,
+      goodMultiplier: good,
+      regularMultiplier: regular,
+      badReset: currentData.badReset,
+    });
+  };
+
+  const handleReset = () => {
+    setFormData({
+      baseIntervals: '1, 7, 30, 90',
+      perfectMultiplier: '2.5',
+      goodMultiplier: '2',
+      regularMultiplier: '1.2',
+      badReset: true,
+    });
+  };
+
+  if (isLoading || !currentData) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-6">
+        <div className="text-sm text-muted-foreground">Cargando configuración...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Settings className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Configuración de repasos</h2>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Base intervals */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">
+            Intervalos base (días)
+          </label>
+          <input
+            type="text"
+            value={currentData.baseIntervals}
+            onChange={(e) =>
+              setFormData({ ...currentData, baseIntervals: e.target.value })
+            }
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            placeholder="1, 7, 30, 90"
+          />
+          <p className="text-xs text-muted-foreground">
+            Separados por coma. El primero se usa como intervalo inicial del primer repaso.
+          </p>
+        </div>
+
+        {/* Multipliers */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">
+              Perfecto (×)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="1"
+              value={currentData.perfectMultiplier}
+              onChange={(e) =>
+                setFormData({ ...currentData, perfectMultiplier: e.target.value })
+              }
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">
+              Bien (×)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="1"
+              value={currentData.goodMultiplier}
+              onChange={(e) =>
+                setFormData({ ...currentData, goodMultiplier: e.target.value })
+              }
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">
+              Regular (×)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="1"
+              value={currentData.regularMultiplier}
+              onChange={(e) =>
+                setFormData({ ...currentData, regularMultiplier: e.target.value })
+              }
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Al completar un repaso, el intervalo se multiplica por estos valores según el resultado.
+        </p>
+
+        {/* Bad reset toggle */}
+        <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-3">
+          <div>
+            <p className="text-sm font-medium">Resultado "Mal" reinicia</p>
+            <p className="text-xs text-muted-foreground">
+              {currentData.badReset
+                ? 'Un mal resultado vuelve al intervalo base (día 1)'
+                : 'Un mal resultado reduce el intervalo a la mitad'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setFormData({ ...currentData, badReset: !currentData.badReset })
+            }
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              currentData.badReset ? 'bg-primary' : 'bg-muted'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                currentData.badReset ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-2">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <RotateCw className="h-3.5 w-3.5" />
+            Restaurar valores predeterminados
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export function ReviewsPage() {
   const queryClient = useQueryClient();
   const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { data: reviews, isLoading, isError, refetch } = useQuery({
     queryKey: ['pending-reviews'],
@@ -118,14 +365,32 @@ export function ReviewsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold">Repasos Pendientes</h1>
-        {sortedReviews.length > 0 && (
-          <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-sm font-medium">
-            {sortedReviews.length}
-          </span>
-        )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Repasos Pendientes</h1>
+          {sortedReviews.length > 0 && (
+            <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-sm font-medium">
+              {sortedReviews.length}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+            showSettings
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border hover:bg-accent text-muted-foreground'
+          }`}
+        >
+          <Settings className="h-4 w-4" />
+          <span className="hidden sm:inline">Configuración</span>
+        </button>
       </div>
+
+      {/* Settings panel */}
+      {showSettings && (
+        <ReviewSettingsPanel onClose={() => setShowSettings(false)} />
+      )}
 
       {/* Empty state */}
       {sortedReviews.length === 0 ? (

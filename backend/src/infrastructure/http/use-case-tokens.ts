@@ -48,6 +48,8 @@ export const USE_CASE_TOKENS = {
   CompleteReviewUseCase: 'CompleteReviewUseCase',
   SkipReviewUseCase: 'SkipReviewUseCase',
   RecalculateUrgencyUseCase: 'RecalculateUrgencyUseCase',
+  GetReviewSettingsUseCase: 'GetReviewSettingsUseCase',
+  UpdateReviewSettingsUseCase: 'UpdateReviewSettingsUseCase',
 
   // ── Dashboard ─────────────────────────────────
   GetDashboardUseCase: 'GetDashboardUseCase',
