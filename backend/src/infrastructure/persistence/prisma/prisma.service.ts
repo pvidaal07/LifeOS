@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
@@ -7,6 +7,7 @@ import { Pool } from 'pg';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   private readonly pool: Pool;
+  private reconnectInFlight: Promise<void> | null = null;
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;
@@ -44,5 +45,57 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$disconnect();
     await this.pool.end();
     this.logger.log('Disconnected from database');
+  }
+
+  isConnectionClosedError(error: unknown): boolean {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return error.code === 'P1017';
+    }
+
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      return (error as { code?: unknown }).code === 'P1017';
+    }
+
+    return false;
+  }
+
+  reconnect(): Promise<void> {
+    if (this.reconnectInFlight) {
+      return this.reconnectInFlight;
+    }
+
+    this.reconnectInFlight = (async () => {
+      this.logger.warn('Prisma connection closed (P1017). Reconnecting...');
+
+      try {
+        await this.$disconnect();
+      } catch (disconnectError) {
+        const message =
+          disconnectError instanceof Error
+            ? disconnectError.message
+            : 'Unknown disconnect error';
+        this.logger.warn(`Prisma disconnect during reconnect failed: ${message}`);
+      }
+
+      await this.$connect();
+      this.logger.log('Prisma reconnected successfully');
+    })().finally(() => {
+      this.reconnectInFlight = null;
+    });
+
+    return this.reconnectInFlight;
+  }
+
+  async runWithReconnect<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!this.isConnectionClosedError(error)) {
+        throw error;
+      }
+
+      await this.reconnect();
+      return operation();
+    }
   }
 }

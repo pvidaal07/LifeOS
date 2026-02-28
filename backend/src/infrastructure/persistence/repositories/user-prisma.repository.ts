@@ -14,31 +14,37 @@ export class UserPrismaRepository implements UserRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
+    const user = await this.prisma.runWithReconnect(() =>
+      this.prisma.user.findUnique({
+        where: { id },
+      }),
+    );
 
     return user ? UserMapper.toDomain(user) : null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.prisma.runWithReconnect(() =>
+      this.prisma.user.findUnique({
+        where: { email },
+      }),
+    );
 
     return user ? UserMapper.toDomain(user) : null;
   }
 
   async findByIdWithProfile(id: string): Promise<UserProfile | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      include: {
-        settings: true,
-        modules: {
-          orderBy: { displayOrder: 'asc' },
+    const user = await this.prisma.runWithReconnect(() =>
+      this.prisma.user.findUnique({
+        where: { id },
+        include: {
+          settings: true,
+          modules: {
+            orderBy: { displayOrder: 'asc' },
+          },
         },
-      },
-    });
+      }),
+    );
 
     if (!user) return null;
 
@@ -72,9 +78,11 @@ export class UserPrismaRepository implements UserRepositoryPort {
   }
 
   async existsByEmail(email: string): Promise<boolean> {
-    const count = await this.prisma.user.count({
-      where: { email },
-    });
+    const count = await this.prisma.runWithReconnect(() =>
+      this.prisma.user.count({
+        where: { email },
+      }),
+    );
     return count > 0;
   }
 }
