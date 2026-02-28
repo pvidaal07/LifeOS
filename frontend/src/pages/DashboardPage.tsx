@@ -2,7 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { studiesApi } from '../api/studies.api';
+import { Badge } from '../components/ui/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import type { DashboardData } from '../types';
+
+const SUBJECT_COLOR_FALLBACK = 'hsl(var(--color-primary-500))';
 
 export function DashboardPage() {
   const { data, isLoading } = useQuery({
@@ -23,11 +27,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Título */}
+      {/* Titulo */}
       <div>
         <h1 className="text-2xl font-bold">Hoy</h1>
         <p className="text-muted-foreground">
-          Tu resumen del día — {new Date().toLocaleDateString('es-ES', {
+          Tu resumen del dia - {new Date().toLocaleDateString('es-ES', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
@@ -35,13 +39,13 @@ export function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats rápidos */}
+      {/* Stats rapidos */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
           icon={<AlertTriangle className="h-4 w-4" />}
           label="Repasos pendientes"
           value={data?.reviews.count ?? 0}
-          accent={data?.reviews.count ? 'text-orange-600' : undefined}
+          state={data?.reviews.count ? 'warning' : 'neutral'}
         />
         <StatCard
           icon={<CheckCircle2 className="h-4 w-4" />}
@@ -62,107 +66,143 @@ export function DashboardPage() {
 
       {/* Repasos pendientes */}
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Repasos pendientes</h2>
-          {(data?.reviews.count ?? 0) > 0 && (
-            <Link
-              to="/reviews"
-              className="text-sm text-primary hover:text-primary/80 transition-colors"
-            >
-              Ir a repasos →
-            </Link>
-          )}
-        </div>
-        {data?.reviews.pending.length === 0 ? (
-          <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
-            🎉 ¡No tienes repasos pendientes! Buen trabajo.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {data?.reviews.pending.map((review) => (
-              <div
-                key={review.id}
-                className="flex items-center justify-between rounded-lg border border-border p-4 hover:bg-accent/50 transition-colors"
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="text-lg">Repasos pendientes</CardTitle>
+            {(data?.reviews.count ?? 0) > 0 && (
+              <Link
+                to="/reviews"
+                className="text-sm font-medium text-primary transition-colors hover:text-brand-primary-700"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: review.topic?.subject?.color || '#6366f1' }}
-                  />
-                  <div>
-                    <p className="font-medium text-sm">{review.topic?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {review.topic?.subject?.name} · Repaso #{review.reviewNumber}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Urgencia: {review.urgencyScore.toFixed(1)}
-                </div>
+                Ir a repasos
+              </Link>
+            )}
+          </CardHeader>
+          <CardContent>
+            {data?.reviews.pending.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+                No tienes repasos pendientes. Buen trabajo.
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-2">
+                {data?.reviews.pending.map((review) => (
+                  <div
+                    key={review.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 transition-colors hover:bg-surface-muted sm:flex-nowrap"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="h-3 w-3 shrink-0 rounded-full"
+                        style={{ backgroundColor: review.topic?.subject?.color ?? SUBJECT_COLOR_FALLBACK }}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{review.topic?.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {review.topic?.subject?.name} - Repaso #{review.reviewNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant={getUrgencyVariant(review.urgencyScore)}
+                      className="shrink-0"
+                    >
+                      Urgencia {getUrgencyLabel(review.urgencyScore)} ({review.urgencyScore.toFixed(1)})
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       {/* Actividad reciente */}
       <section>
-        <h2 className="text-lg font-semibold mb-3">Actividad reciente</h2>
-        {data?.recentActivity.length === 0 ? (
-          <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
-            Aún no hay actividad. ¡Empieza a estudiar!
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {data?.recentActivity.map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center justify-between rounded-lg border border-border p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: session.topic?.subject?.color || '#6366f1' }}
-                  />
-                  <div>
-                    <p className="text-sm">{session.topic?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {session.sessionType === 'first_time' ? 'Primera vez' :
-                       session.sessionType === 'review' ? 'Repaso' : 'Práctica'}
-                      {session.durationMinutes && ` · ${session.durationMinutes} min`}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(session.studiedAt).toLocaleDateString('es-ES')}
-                </span>
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Actividad reciente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data?.recentActivity.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+                Aun no hay actividad. Empieza a estudiar.
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-2">
+                {data?.recentActivity.map((session) => (
+                  <div
+                    key={session.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface p-3 sm:flex-nowrap"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: session.topic?.subject?.color ?? SUBJECT_COLOR_FALLBACK }}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm">{session.topic?.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {session.sessionType === 'first_time'
+                            ? 'Primera vez'
+                            : session.sessionType === 'review'
+                              ? 'Repaso'
+                              : 'Practica'}
+                          {session.durationMinutes && ` - ${session.durationMinutes} min`}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(session.studiedAt).toLocaleDateString('es-ES')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
+}
+
+function getUrgencyVariant(score: number): 'danger' | 'warning' | 'success' {
+  if (score >= 7) return 'danger';
+  if (score >= 4) return 'warning';
+  return 'success';
+}
+
+function getUrgencyLabel(score: number): 'alta' | 'media' | 'baja' {
+  if (score >= 7) return 'alta';
+  if (score >= 4) return 'media';
+  return 'baja';
 }
 
 function StatCard({
   icon,
   label,
   value,
-  accent,
+  state = 'neutral',
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
-  accent?: string;
+  state?: 'neutral' | 'warning';
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-        {icon}
-        <span className="text-xs">{label}</span>
-      </div>
-      <p className={`text-2xl font-bold ${accent || ''}`}>{value}</p>
-    </div>
+    <Card className="h-full">
+      <CardContent className="p-4">
+        <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+          {icon}
+          <span className="text-xs">{label}</span>
+        </div>
+        <p
+          className={`text-2xl font-bold ${
+            state === 'warning' ? 'text-state-warning-foreground' : 'text-text-primary'
+          }`}
+        >
+          {value}
+        </p>
+      </CardContent>
+    </Card>
   );
 }

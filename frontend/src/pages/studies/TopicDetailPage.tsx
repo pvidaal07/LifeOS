@@ -4,7 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Clock, BarChart3, History, BookOpen, X, Pencil, Trash2, Check, CalendarClock, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import type { Topic } from '../../types';
+
+const MODAL_BACKDROP_CLASS = 'fixed inset-0 z-50 grid place-items-center bg-canvas/70 p-4 backdrop-blur-sm';
+const MODAL_PANEL_CLASS = 'w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-float';
 
 export function TopicDetailPage() {
   const { topicId } = useParams<{ topicId: string }>();
@@ -84,18 +91,32 @@ export function TopicDetailPage() {
   });
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Cargando tema...</div>;
+    return (
+      <div className="flex h-52 items-center justify-center">
+        <p className="text-sm text-muted-foreground">Cargando tema...</p>
+      </div>
+    );
   }
 
   if (!topic) {
-    return <div>Tema no encontrado</div>;
+    return (
+      <Card>
+        <CardContent className="p-6 text-sm text-muted-foreground">Tema no encontrado</CardContent>
+      </Card>
+    );
   }
 
   const getMasteryColor = (level: number) => {
-    if (level >= 7) return 'bg-green-500';
-    if (level >= 5) return 'bg-yellow-500';
-    if (level >= 3) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (level >= 7) return 'bg-state-success';
+    if (level >= 5) return 'bg-brand-secondary-500';
+    if (level >= 3) return 'bg-state-warning';
+    return 'bg-state-danger';
+  };
+
+  const getStatusBadgeVariant = (status: Topic['status']) => {
+    if (status === 'mastered') return 'success';
+    if (status === 'in_progress') return 'secondary';
+    return 'neutral';
   };
 
   return (
@@ -104,7 +125,7 @@ export function TopicDetailPage() {
       <div>
         <Link
           to={`/studies/${topic.subject?.studyPlan?.id || ''}`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           {topic.subject?.studyPlan?.name || 'Volver'}
@@ -122,60 +143,64 @@ export function TopicDetailPage() {
             }}
             className="space-y-3"
           >
-            <input
+            <Input
               type="text"
               value={editingTopic.name}
               onChange={(e) => setEditingTopic({ ...editingTopic, name: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-12 text-lg font-bold"
               autoFocus
             />
-            <input
+            <Input
               type="text"
               value={editingTopic.description}
               onChange={(e) => setEditingTopic({ ...editingTopic, description: e.target.value })}
-              placeholder="Descripción (opcional)"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Descripcion (opcional)"
+              className="h-11"
             />
             <div className="flex gap-2">
-              <button
+              <Button
                 type="submit"
                 disabled={updateTopicMutation.isPending}
-                className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                size="sm"
+                className="gap-1.5"
               >
                 <Check className="h-4 w-4" />
                 Guardar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setEditingTopic(null)}
-                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+                variant="secondary"
+                size="sm"
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
           </form>
         ) : deletingTopic ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
-            <p className="text-sm font-medium text-red-900">
+          <div className="space-y-3 rounded-xl border border-state-danger/25 bg-state-danger-soft p-4 text-state-danger-foreground">
+            <p className="text-sm font-semibold">
               ¿Eliminar &quot;{topic.name}&quot;?
             </p>
-            <p className="text-xs text-red-700">
+            <p className="text-xs text-state-danger-foreground/85">
               Se eliminarán todas sus sesiones y repasos. Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => deleteTopicMutation.mutate()}
                 disabled={deleteTopicMutation.isPending}
-                className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                variant="destructive"
+                size="sm"
               >
                 {deleteTopicMutation.isPending ? 'Eliminando...' : 'Eliminar tema'}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setDeletingTopic(false)}
-                className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                variant="secondary"
+                size="sm"
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -184,37 +209,41 @@ export function TopicDetailPage() {
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{topic.name}</h1>
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
                     onClick={() => setEditingTopic({
                       name: topic.name,
                       description: topic.description || '',
                     })}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground"
                     title="Editar tema"
                   >
                     <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setDeletingTopic(true)}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:bg-state-danger-soft hover:text-state-danger-foreground"
                     title="Eliminar tema"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <button
+              <Button
                 onClick={() => {
                   setSessionFormData({
                     sessionType: topic.status === 'not_started' ? 'first_time' : undefined,
                   });
                   setShowSessionForm(true);
                 }}
-                className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                className="h-11 gap-2"
               >
                 <BookOpen className="h-4 w-4" />
                 Estudiar
-              </button>
+              </Button>
             </div>
             {topic.description && (
               <p className="text-sm text-muted-foreground mt-1">{topic.description}</p>
@@ -234,20 +263,23 @@ export function TopicDetailPage() {
 
       {/* Dominio */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-border p-4">
+        <Card>
+          <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-muted-foreground">
               <BarChart3 className="h-4 w-4" />
               <span className="text-xs">Dominio manual</span>
             </div>
             {editingMastery === null ? (
-              <button
+              <Button
                 onClick={() => setEditingMastery(topic.masteryLevel)}
-                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
                 title="Ajustar dominio"
               >
                 <Pencil className="h-3 w-3" />
-              </button>
+              </Button>
             ) : null}
           </div>
           {editingMastery !== null ? (
@@ -269,20 +301,23 @@ export function TopicDetailPage() {
                 <span>10</span>
               </div>
               <div className="flex gap-2">
-                <button
+                <Button
                   onClick={() => updateTopicMutation.mutate({ masteryLevel: editingMastery })}
                   disabled={updateTopicMutation.isPending}
-                  className="flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  size="sm"
+                  className="h-8 gap-1"
                 >
                   <Check className="h-3 w-3" />
                   Guardar
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setEditingMastery(null)}
-                  className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8"
                 >
                   Cancelar
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -299,9 +334,11 @@ export function TopicDetailPage() {
               </div>
             </>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg border border-border p-4">
+        <Card>
+          <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             <BarChart3 className="h-4 w-4" />
             <span className="text-xs">Dominio del sistema</span>
@@ -321,26 +358,26 @@ export function TopicDetailPage() {
               Completa repasos desde la página de Repasos para subir tu dominio
             </p>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg border border-border p-4">
+        <Card>
+          <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             <Clock className="h-4 w-4" />
             <span className="text-xs">Estado</span>
           </div>
-          <p className={`text-lg font-semibold ${
-            topic.status === 'mastered' ? 'text-green-600' :
-            topic.status === 'in_progress' ? 'text-blue-600' : 'text-muted-foreground'
-          }`}>
+          <Badge variant={getStatusBadgeVariant(topic.status)} className="w-fit px-3 py-1 text-sm font-semibold">
             {topic.status === 'not_started' ? 'Sin empezar' :
-             topic.status === 'in_progress' ? 'En progreso' : 'Dominado'}
-          </p>
+              topic.status === 'in_progress' ? 'En progreso' : 'Dominado'}
+          </Badge>
           {topic.status === 'in_progress' && topic.systemMasteryLevel > 0 && (
             <p className="text-xs text-muted-foreground mt-1">
               Dominio ≥ 7 para marcar como dominado
             </p>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Next review card */}
         {(() => {
@@ -356,12 +393,13 @@ export function TopicDetailPage() {
             const isPast = reviewDate <= now;
 
             return (
-              <div className={`rounded-lg border p-4 ${isPast ? 'border-orange-300 bg-orange-50' : 'border-border'}`}>
+              <Card className={isPast ? 'border-state-warning/35 bg-state-warning-soft' : ''}>
+                <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
                   <CalendarClock className="h-4 w-4" />
                   <span className="text-xs">Próximo repaso</span>
                 </div>
-                <p className={`text-lg font-semibold ${isPast ? 'text-orange-600' : ''}`}>
+                <p className={`text-lg font-semibold ${isPast ? 'text-state-warning-foreground' : ''}`}>
                   {isToday ? 'Hoy' :
                    isPast ? 'Atrasado' :
                    reviewDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
@@ -372,19 +410,21 @@ export function TopicDetailPage() {
                 {isPast && (
                   <Link
                     to="/reviews"
-                    className="mt-2 inline-flex items-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700"
+                    className="mt-2 inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-brand-primary-700"
                   >
                     <RotateCcw className="h-3 w-3" />
                     Ir a repasos
                   </Link>
                 )}
-              </div>
+                </CardContent>
+              </Card>
             );
           }
 
           if (topic.status === 'not_started') {
             return (
-              <div className="rounded-lg border border-dashed border-border p-4">
+              <Card>
+                <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-4">
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
                   <CalendarClock className="h-4 w-4" />
                   <span className="text-xs">Próximo repaso</span>
@@ -392,12 +432,14 @@ export function TopicDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   Registra tu primera sesión para activar los repasos automáticos
                 </p>
-              </div>
+                </CardContent>
+              </Card>
             );
           }
 
           return (
-            <div className="rounded-lg border border-border p-4">
+            <Card>
+              <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <CalendarClock className="h-4 w-4" />
                 <span className="text-xs">Próximo repaso</span>
@@ -405,7 +447,8 @@ export function TopicDetailPage() {
               <p className="text-sm text-muted-foreground">
                 Sin repasos pendientes
               </p>
-            </div>
+              </CardContent>
+            </Card>
           );
         })()}
       </div>
@@ -417,18 +460,18 @@ export function TopicDetailPage() {
           Historial de sesiones
         </h2>
         {(topic as any).studySessions?.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
-            Aún no hay sesiones registradas para este tema
-          </div>
+          <Card>
+            <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center text-muted-foreground">
+              Aún no hay sesiones registradas para este tema
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-2">
             {(topic as any).studySessions?.map((session: any) => (
-              <div
-                key={session.id}
-                className="flex items-center justify-between rounded-lg border border-border p-3"
-              >
+              <Card key={session.id}>
+                <CardContent className="flex items-center justify-between p-3">
                 <div>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium text-text-primary">
                     {session.sessionType === 'first_time' ? '📘 Primera vez' :
                      session.sessionType === 'review' ? '🔄 Repaso' : '✏️ Práctica'}
                   </span>
@@ -444,7 +487,8 @@ export function TopicDetailPage() {
                     <p className="text-xs text-muted-foreground">{session.durationMinutes} min</p>
                   )}
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
@@ -457,7 +501,7 @@ export function TopicDetailPage() {
           {((topic as any).reviewSchedules ?? []).some((r: any) => r.status === 'pending') && (
             <Link
               to="/reviews"
-              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+              className="flex items-center gap-1 text-sm text-primary transition-colors hover:text-brand-primary-700"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Ir a repasos
@@ -465,54 +509,62 @@ export function TopicDetailPage() {
           )}
         </div>
         {(topic as any).reviewSchedules?.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
-            {topic.status === 'not_started'
-              ? 'Estudia este tema para activar el sistema de repasos automáticos'
-              : 'No hay repasos programados aún'}
-          </div>
+          <Card>
+            <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center text-muted-foreground">
+              {topic.status === 'not_started'
+                ? 'Estudia este tema para activar el sistema de repasos automáticos'
+                : 'No hay repasos programados aún'}
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-2">
             {(topic as any).reviewSchedules?.map((review: any) => (
-              <div
-                key={review.id}
-                className="flex items-center justify-between rounded-lg border border-border p-3"
-              >
+              <Card key={review.id}>
+                <CardContent className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm">Repaso #{review.reviewNumber}</span>
                   {review.result && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      review.result === 'perfect' ? 'bg-green-100 text-green-700' :
-                      review.result === 'good' ? 'bg-blue-100 text-blue-700' :
-                      review.result === 'regular' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
+                    <Badge
+                      variant={
+                        review.result === 'perfect'
+                          ? 'success'
+                          : review.result === 'good'
+                            ? 'secondary'
+                            : review.result === 'regular'
+                              ? 'warning'
+                              : 'danger'
+                      }
+                    >
                       {review.result === 'perfect' ? 'Perfecto' :
                        review.result === 'good' ? 'Bien' :
                        review.result === 'regular' ? 'Regular' : 'Mal'}
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <div className="text-right text-xs text-muted-foreground">
                   <p>{new Date(review.scheduledDate).toLocaleDateString('es-ES')}</p>
                   <p className="capitalize">{review.status === 'pending' ? '⏳ Pendiente' : review.status === 'completed' ? '✅ Completado' : '⏭️ Saltado'}</p>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
       </section>
       {/* Session form dialog */}
       {showSessionForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg mx-4">
+        <div className={MODAL_BACKDROP_CLASS}>
+          <div className={MODAL_PANEL_CLASS}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Registrar sesión</h3>
-              <button
+              <Button
                 onClick={() => { setShowSessionForm(false); setSessionFormData({}); }}
-                className="rounded-md p-1 hover:bg-accent"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <p className="text-sm text-muted-foreground mb-4">
@@ -543,20 +595,21 @@ export function TopicDetailPage() {
                       { value: 'review', label: 'Repaso' },
                       { value: 'practice', label: 'Práctica' },
                     ].map(({ value, label }) => (
-                      <button
+                      <Button
                         key={value}
                         type="button"
                         onClick={() =>
                           setSessionFormData({ ...sessionFormData, sessionType: value })
                         }
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                        variant="secondary"
+                        className={`h-11 flex-1 border text-sm font-medium transition-colors ${
                           sessionFormData.sessionType === value
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border hover:bg-accent'
+                            ? 'border-brand-primary-500/40 bg-brand-primary-100 text-brand-primary-700'
+                            : 'border-border'
                         }`}
                       >
                         {label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -567,7 +620,7 @@ export function TopicDetailPage() {
                 <label htmlFor="topic-session-duration" className="block text-sm font-medium mb-1.5">
                   Duración (minutos) <span className="text-muted-foreground font-normal">— opcional</span>
                 </label>
-                <input
+                <Input
                   id="topic-session-duration"
                   type="number"
                   min={1}
@@ -580,7 +633,7 @@ export function TopicDetailPage() {
                       durationMinutes: e.target.value ? parseInt(e.target.value) : undefined,
                     })
                   }
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-11"
                 />
               </div>
 
@@ -591,7 +644,7 @@ export function TopicDetailPage() {
                 </label>
                 <div className="flex gap-1.5">
                   {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
+                    <Button
                       key={rating}
                       type="button"
                       onClick={() =>
@@ -601,14 +654,15 @@ export function TopicDetailPage() {
                             sessionFormData.qualityRating === rating ? undefined : rating,
                         })
                       }
-                      className={`flex-1 rounded-md border py-2 text-sm font-medium transition-colors ${
+                      variant="secondary"
+                      className={`h-11 flex-1 border text-sm font-medium transition-colors ${
                         sessionFormData.qualityRating === rating
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:bg-accent'
+                          ? 'border-brand-primary-500/40 bg-brand-primary-100 text-brand-primary-700'
+                          : 'border-border'
                       }`}
                     >
                       {rating}
-                    </button>
+                    </Button>
                   ))}
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -633,26 +687,27 @@ export function TopicDetailPage() {
                     })
                   }
                   rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  className="w-full resize-none rounded-lg border border-input bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 />
               </div>
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => { setShowSessionForm(false); setSessionFormData({}); }}
-                  className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
+                  variant="secondary"
+                  className="h-11"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={createSessionMutation.isPending}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="h-11"
                 >
                   {createSessionMutation.isPending ? 'Registrando...' : 'Registrar sesión'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

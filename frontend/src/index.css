@@ -4,57 +4,196 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --color-primary-900: 215 69% 14%;
+    --color-primary-700: 224 64% 33%;
+    --color-primary-500: 221 83% 53%;
+    --color-primary-100: 214 95% 93%;
+
+    --color-secondary-900: 181 61% 15%;
+    --color-secondary-700: 175 77% 26%;
+    --color-secondary-500: 173 80% 40%;
+    --color-secondary-100: 167 85% 89%;
+
+    --color-accent-700: 142 72% 29%;
+    --color-accent-500: 142 71% 45%;
+    --color-accent-200: 141 79% 85%;
+
+    --color-success: 142 76% 36%;
+    --color-warning: 38 92% 50%;
+    --color-danger: 0 84% 60%;
+    --color-info: 198 93% 60%;
+
+    --color-neutral-bg: 210 40% 98%;
+    --color-neutral-surface: 0 0% 100%;
+    --color-neutral-surface-2: 210 40% 96%;
+    --color-neutral-border: 214 32% 91%;
+    --color-neutral-text: 222 47% 11%;
+    --color-neutral-muted: 215 16% 47%;
+
+    --bg-canvas: var(--color-neutral-bg);
+    --bg-canvas-muted: var(--color-neutral-surface-2);
+    --bg-surface: var(--color-neutral-surface);
+    --bg-surface-muted: var(--color-neutral-surface-2);
+
+    --text-primary: var(--color-neutral-text);
+    --text-secondary: var(--color-neutral-muted);
+    --text-muted: var(--color-neutral-muted);
+    --text-inverse: 0 0% 100%;
+
+    --action-primary-bg: var(--color-primary-500);
+    --action-primary-hover: var(--color-primary-700);
+    --action-primary-fg: var(--text-inverse);
+    --action-secondary-bg: var(--bg-surface);
+    --action-secondary-hover: var(--bg-surface-muted);
+    --action-secondary-fg: var(--text-primary);
+    --action-secondary-border: var(--color-neutral-border);
+
+    --state-success: var(--color-success);
+    --state-success-soft: var(--color-accent-200);
+    --state-warning: var(--color-warning);
+    --state-warning-soft: 43 96% 90%;
+    --state-danger: var(--color-danger);
+    --state-danger-soft: 0 93% 94%;
+    --state-info: var(--color-info);
+    --state-info-soft: 198 93% 93%;
+
+    --state-success-fg: 142 80% 16%;
+    --state-warning-fg: 32 92% 22%;
+    --state-danger-fg: 0 71% 35%;
+    --state-info-fg: 201 90% 24%;
+
+    --border-subtle: var(--color-neutral-border);
+    --input-bg: var(--bg-surface);
+    --input-border: var(--border-subtle);
+    --ring-focus: var(--color-primary-500);
+
+    --radius: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-sm: 0.5rem;
+    --shadow-xs: 0 1px 2px 0 hsl(222 47% 11% / 0.04);
+    --shadow-sm: 0 6px 20px -14px hsl(222 47% 11% / 0.18);
+    --shadow-md: 0 20px 35px -24px hsl(222 47% 11% / 0.24);
+
+    --background: var(--bg-canvas);
+    --foreground: var(--text-primary);
+    --card: var(--bg-surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-surface);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--action-primary-bg);
+    --primary-foreground: var(--action-primary-fg);
+    --secondary: var(--color-secondary-100);
+    --secondary-foreground: var(--color-secondary-700);
+    --muted: var(--bg-surface-muted);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--color-accent-200);
+    --accent-foreground: var(--color-accent-700);
+    --destructive: var(--state-danger);
+    --destructive-foreground: var(--text-inverse);
+    --border: var(--border-subtle);
+    --input: var(--input-border);
+    --ring: var(--ring-focus);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
-}
+    --bg-canvas: 222 47% 11%;
+    --bg-canvas-muted: 217 33% 18%;
+    --bg-surface: 222 40% 13%;
+    --bg-surface-muted: 217 33% 18%;
+    --text-primary: 210 40% 98%;
+    --text-secondary: 215 20% 65%;
+    --text-muted: 215 20% 65%;
+    --action-primary-bg: 210 40% 98%;
+    --action-primary-hover: 214 32% 91%;
+    --action-primary-fg: 222 47% 11%;
+    --border-subtle: 217 33% 22%;
+    --input-border: 217 33% 22%;
+    --ring-focus: 212 27% 84%;
 
-@layer base {
+    --background: var(--bg-canvas);
+    --foreground: var(--text-primary);
+    --card: var(--bg-surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-surface);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--action-primary-bg);
+    --primary-foreground: var(--action-primary-fg);
+    --secondary: var(--bg-surface-muted);
+    --secondary-foreground: var(--text-primary);
+    --muted: var(--bg-surface-muted);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--bg-surface-muted);
+    --accent-foreground: var(--text-primary);
+    --destructive: 0 63% 31%;
+    --destructive-foreground: var(--text-inverse);
+    --border: var(--border-subtle);
+    --input: var(--input-border);
+    --ring: var(--ring-focus);
+  }
+
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    @apply text-foreground;
+    background-color: hsl(var(--bg-canvas));
+    color: hsl(var(--text-primary));
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring-focus) / 0.45);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .ambient-surface {
+    background-image:
+      radial-gradient(circle at 12% 8%, hsl(var(--color-secondary-100) / 0.45), transparent 42%),
+      radial-gradient(circle at 88% 4%, hsl(var(--color-primary-100) / 0.5), transparent 38%),
+      linear-gradient(180deg, hsl(var(--bg-canvas)) 0%, hsl(var(--bg-canvas-muted)) 100%);
+  }
+
+  .auth-overlay {
+    background-color: hsl(var(--bg-surface) / 0.78);
+    border: 1px solid hsl(var(--border-subtle) / 0.9);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(4px);
+  }
+
+  .auth-card {
+    background-color: hsl(var(--color-neutral-text) / 0.3);
+    border: 1px solid hsl(0 0% 100% / 0.15);
+    border-radius: 1.25rem;
+    padding: 2rem 2rem;
+    box-shadow: 0 24px 48px -12px hsl(222 47% 11% / 0.35);
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  }
+
+  @media (min-width: 640px) {
+    .auth-card {
+      padding: 2.25rem 2.5rem;
+    }
+  }
+
+  .auth-banner-scrim {
+    background:
+      linear-gradient(135deg, hsl(var(--color-primary-900) / 0.82) 0%, hsl(var(--color-secondary-900) / 0.58) 45%, hsl(var(--color-neutral-text) / 0.7) 100%),
+      radial-gradient(circle at 14% 18%, hsl(var(--color-primary-100) / 0.35), transparent 32%),
+      radial-gradient(circle at 80% 8%, hsl(var(--color-secondary-100) / 0.28), transparent 30%);
+  }
+
+  .elev-subtle {
+    box-shadow: var(--shadow-xs);
+  }
+
+  .elev-soft {
+    box-shadow: var(--shadow-sm);
   }
 }

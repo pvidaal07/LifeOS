@@ -19,6 +19,63 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+
+        canvas: {
+          DEFAULT: 'hsl(var(--bg-canvas))',
+          muted: 'hsl(var(--bg-canvas-muted))',
+        },
+        surface: {
+          DEFAULT: 'hsl(var(--bg-surface))',
+          muted: 'hsl(var(--bg-surface-muted))',
+        },
+        text: {
+          primary: 'hsl(var(--text-primary))',
+          secondary: 'hsl(var(--text-secondary))',
+          muted: 'hsl(var(--text-muted))',
+          inverse: 'hsl(var(--text-inverse))',
+        },
+        state: {
+          success: {
+            DEFAULT: 'hsl(var(--state-success))',
+            soft: 'hsl(var(--state-success-soft))',
+            foreground: 'hsl(var(--state-success-fg))',
+          },
+          warning: {
+            DEFAULT: 'hsl(var(--state-warning))',
+            soft: 'hsl(var(--state-warning-soft))',
+            foreground: 'hsl(var(--state-warning-fg))',
+          },
+          danger: {
+            DEFAULT: 'hsl(var(--state-danger))',
+            soft: 'hsl(var(--state-danger-soft))',
+            foreground: 'hsl(var(--state-danger-fg))',
+          },
+          info: {
+            DEFAULT: 'hsl(var(--state-info))',
+            soft: 'hsl(var(--state-info-soft))',
+            foreground: 'hsl(var(--state-info-fg))',
+          },
+        },
+        brand: {
+          primary: {
+            100: 'hsl(var(--color-primary-100))',
+            500: 'hsl(var(--color-primary-500))',
+            700: 'hsl(var(--color-primary-700))',
+            900: 'hsl(var(--color-primary-900))',
+          },
+          secondary: {
+            100: 'hsl(var(--color-secondary-100))',
+            500: 'hsl(var(--color-secondary-500))',
+            700: 'hsl(var(--color-secondary-700))',
+            900: 'hsl(var(--color-secondary-900))',
+          },
+          accent: {
+            200: 'hsl(var(--color-accent-200))',
+            500: 'hsl(var(--color-accent-500))',
+            700: 'hsl(var(--color-accent-700))',
+          },
+        },
+
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
@@ -51,9 +108,15 @@ const config: Config = {
         },
       },
       borderRadius: {
+        xl: 'var(--radius-lg)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      boxShadow: {
+        subtle: 'var(--shadow-xs)',
+        soft: 'var(--shadow-sm)',
+        float: 'var(--shadow-md)',
       },
     },
   },

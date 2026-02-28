@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLogin } from '../hooks/useAuth';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import bannerImage from '../public/banner.png';
+import logoText from '../public/logotipo-texto.png';
 
 export function LoginPage() {
   const { mutate: login, isPending } = useLogin();
@@ -12,64 +16,65 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        {/* Logo */}
-        <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">
-            L
-          </div>
-          <h1 className="mt-4 text-2xl font-bold">LifeOS</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      <img
+        src={bannerImage}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="auth-banner-scrim absolute inset-0" />
+
+      <div className="auth-card relative mx-4 w-full max-w-[460px] sm:mx-6">
+        <div className="flex flex-col items-center space-y-1 text-center">
+          <img src={logoText} alt="LifeOS" className="h-12 w-auto sm:h-14" />
+          <p className="text-sm text-white/70">
             Tu sistema operativo personal
           </p>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
+        <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium text-white/90">
               Email
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               required
+              autoComplete="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="tu@email.com"
+              disabled={isPending}
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
-              Contraseña
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-sm font-medium text-white/90">
+              Contrasena
             </label>
-            <input
+            <Input
               id="password"
               type="password"
               required
+              autoComplete="current-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="••••••••"
+              placeholder="********"
+              disabled={isPending}
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {isPending ? 'Entrando...' : 'Iniciar sesión'}
-          </button>
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? 'Entrando...' : 'Iniciar sesion'}
+          </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          ¿No tienes cuenta?{' '}
-          <Link to="/register" className="text-primary hover:underline font-medium">
-            Regístrate
+        <p className="mt-6 text-center text-sm text-white/60">
+          No tienes cuenta?{' '}
+          <Link to="/register" className="font-medium text-white/90 transition-colors hover:text-white hover:underline">
+            Registrate
           </Link>
         </p>
       </div>

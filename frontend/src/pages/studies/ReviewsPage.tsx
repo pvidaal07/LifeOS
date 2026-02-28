@@ -3,7 +3,50 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock, Settings, X, RotateCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
+import { cn } from '../../lib/utils';
 import type { ReviewSchedule, ReviewSettings, ReviewResult } from '../../types';
+
+const SUBJECT_COLOR_FALLBACK = 'hsl(var(--color-primary-500))';
+
+const resultButtons: {
+  result: ReviewResult;
+  label: string;
+  variant: 'success' | 'secondary' | 'warning' | 'danger';
+}[] = [
+  { result: 'perfect', label: 'Perfecto', variant: 'success' },
+  { result: 'good', label: 'Bien', variant: 'secondary' },
+  { result: 'regular', label: 'Regular', variant: 'warning' },
+  { result: 'bad', label: 'Mal', variant: 'danger' },
+];
+
+function getUrgencyVariant(score: number): 'danger' | 'warning' | 'success' {
+  if (score >= 7) return 'danger';
+  if (score >= 4) return 'warning';
+  return 'success';
+}
+
+function getUrgencyLabel(score: number): 'Alta' | 'Media' | 'Baja' {
+  if (score >= 7) return 'Alta';
+  if (score >= 4) return 'Media';
+  return 'Baja';
+}
+
+function getResultButtonClass(variant: 'success' | 'secondary' | 'warning' | 'danger'): string {
+  if (variant === 'success') {
+    return 'border-state-success/30 bg-state-success-soft text-state-success-foreground hover:bg-state-success-soft/80';
+  }
+  if (variant === 'secondary') {
+    return 'border-brand-secondary-100 bg-brand-secondary-100 text-brand-secondary-700 hover:bg-brand-secondary-100/80';
+  }
+  if (variant === 'warning') {
+    return 'border-state-warning/30 bg-state-warning-soft text-state-warning-foreground hover:bg-state-warning-soft/80';
+  }
+  return 'border-state-danger/30 bg-state-danger-soft text-state-danger-foreground hover:bg-state-danger-soft/80';
+}
 
 function ReviewSettingsPanel({
   onClose,
@@ -28,7 +71,6 @@ function ReviewSettingsPanel({
     badReset: boolean;
   } | null>(null);
 
-  // Initialize form data when settings load
   const currentData = formData ?? (settings ? {
     baseIntervals: settings.baseIntervals.join(', '),
     perfectMultiplier: String(settings.perfectMultiplier),
@@ -47,11 +89,11 @@ function ReviewSettingsPanel({
     }) => studiesApi.updateReviewSettings(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['review-settings'] });
-      toast.success('Configuración guardada');
+      toast.success('Configuracion guardada');
       onClose();
     },
     onError: () => {
-      toast.error('Error al guardar la configuración');
+      toast.error('Error al guardar la configuracion');
     },
   });
 
@@ -65,7 +107,7 @@ function ReviewSettingsPanel({
       .filter((n) => !isNaN(n) && n > 0);
 
     if (intervals.length === 0) {
-      toast.error('Debes indicar al menos un intervalo válido');
+      toast.error('Debes indicar al menos un intervalo valido');
       return;
     }
 
@@ -74,7 +116,7 @@ function ReviewSettingsPanel({
     const regular = parseFloat(currentData.regularMultiplier);
 
     if ([perfect, good, regular].some((n) => isNaN(n) || n < 1)) {
-      toast.error('Los multiplicadores deben ser números >= 1');
+      toast.error('Los multiplicadores deben ser numeros >= 1');
       return;
     }
 
@@ -99,155 +141,157 @@ function ReviewSettingsPanel({
 
   if (isLoading || !currentData) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <div className="text-sm text-muted-foreground">Cargando configuración...</div>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-sm text-muted-foreground">Cargando configuracion...</div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6 space-y-5">
-      <div className="flex items-center justify-between">
+    <Card className="space-y-0">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Configuración de repasos</h2>
+          <CardTitle className="text-lg">Configuracion de repasos</CardTitle>
         </div>
-        <button
+        <Button
           onClick={onClose}
-          className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 text-muted-foreground"
+          aria-label="Cerrar panel de configuracion"
         >
           <X className="h-4 w-4" />
-        </button>
-      </div>
+        </Button>
+      </CardHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Base intervals */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">
-            Intervalos base (días)
-          </label>
-          <input
-            type="text"
-            value={currentData.baseIntervals}
-            onChange={(e) =>
-              setFormData({ ...currentData, baseIntervals: e.target.value })
-            }
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            placeholder="1, 7, 30, 90"
-          />
-          <p className="text-xs text-muted-foreground">
-            Separados por coma. El primero se usa como intervalo inicial del primer repaso.
-          </p>
-        </div>
-
-        {/* Multipliers */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              Perfecto (×)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              min="1"
-              value={currentData.perfectMultiplier}
+            <label className="text-sm font-medium">Intervalos base (dias)</label>
+            <Input
+              type="text"
+              value={currentData.baseIntervals}
               onChange={(e) =>
-                setFormData({ ...currentData, perfectMultiplier: e.target.value })
+                setFormData({ ...currentData, baseIntervals: e.target.value })
               }
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="h-11"
+              placeholder="1, 7, 30, 90"
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              Bien (×)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              min="1"
-              value={currentData.goodMultiplier}
-              onChange={(e) =>
-                setFormData({ ...currentData, goodMultiplier: e.target.value })
-              }
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              Regular (×)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              min="1"
-              value={currentData.regularMultiplier}
-              onChange={(e) =>
-                setFormData({ ...currentData, regularMultiplier: e.target.value })
-              }
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground -mt-2">
-          Al completar un repaso, el intervalo se multiplica por estos valores según el resultado.
-        </p>
-
-        {/* Bad reset toggle */}
-        <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-3">
-          <div>
-            <p className="text-sm font-medium">Resultado "Mal" reinicia</p>
             <p className="text-xs text-muted-foreground">
-              {currentData.badReset
-                ? 'Un mal resultado vuelve al intervalo base (día 1)'
-                : 'Un mal resultado reduce el intervalo a la mitad'}
+              Separados por coma. El primero se usa como intervalo inicial del primer repaso.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              setFormData({ ...currentData, badReset: !currentData.badReset })
-            }
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              currentData.badReset ? 'bg-primary' : 'bg-muted'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                currentData.badReset ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <RotateCw className="h-3.5 w-3.5" />
-            Restaurar valores predeterminados
-          </button>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Perfecto (x)</label>
+              <Input
+                type="number"
+                step="0.1"
+                min="1"
+                value={currentData.perfectMultiplier}
+                onChange={(e) =>
+                  setFormData({ ...currentData, perfectMultiplier: e.target.value })
+                }
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Bien (x)</label>
+              <Input
+                type="number"
+                step="0.1"
+                min="1"
+                value={currentData.goodMultiplier}
+                onChange={(e) =>
+                  setFormData({ ...currentData, goodMultiplier: e.target.value })
+                }
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Regular (x)</label>
+              <Input
+                type="number"
+                step="0.1"
+                min="1"
+                value={currentData.regularMultiplier}
+                onChange={(e) =>
+                  setFormData({ ...currentData, regularMultiplier: e.target.value })
+                }
+                className="h-11"
+              />
+            </div>
+          </div>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            Al completar un repaso, el intervalo se multiplica por estos valores segun el resultado.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input bg-surface-muted px-3 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Resultado "Mal" reinicia</p>
+              <p className="text-xs text-muted-foreground">
+                {currentData.badReset
+                  ? 'Un mal resultado vuelve al intervalo base (dia 1)'
+                  : 'Un mal resultado reduce el intervalo a la mitad'}
+              </p>
+            </div>
             <button
               type="button"
-              onClick={onClose}
-              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
+              onClick={() =>
+                setFormData({ ...currentData, badReset: !currentData.badReset })
+              }
+              className={cn(
+                'relative inline-flex h-11 w-16 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
+                currentData.badReset
+                  ? 'border-primary bg-primary'
+                  : 'border-input bg-surface'
+              )}
+              aria-label={currentData.badReset ? 'Reinicio activado' : 'Reinicio desactivado'}
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+              <span
+                className={cn(
+                  'inline-block h-5 w-5 transform rounded-full bg-surface transition-transform',
+                  currentData.badReset ? 'translate-x-9' : 'translate-x-1'
+                )}
+              />
             </button>
           </div>
-        </div>
-      </form>
-    </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <Button
+              type="button"
+              onClick={handleReset}
+              variant="ghost"
+              className="h-11 px-0 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCw className="mr-1.5 h-3.5 w-3.5" />
+              Restaurar valores predeterminados
+            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="secondary"
+                className="h-11"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="h-11"
+              >
+                {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -304,7 +348,7 @@ export function ReviewsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <div className="text-muted-foreground">Cargando repasos...</div>
       </div>
     );
@@ -312,15 +356,12 @@ export function ReviewsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
+      <div className="flex h-64 flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Error al cargar los repasos</p>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <RefreshCw className="h-4 w-4" />
+        <Button onClick={() => refetch()} className="h-11">
+          <RefreshCw className="mr-2 h-4 w-4" />
           Reintentar
-        </button>
+        </Button>
       </div>
     );
   }
@@ -328,25 +369,6 @@ export function ReviewsPage() {
   const sortedReviews = [...(reviews ?? [])].sort(
     (a, b) => b.urgencyScore - a.urgencyScore,
   );
-
-  const getUrgencyColor = (score: number) => {
-    if (score >= 7) return 'text-red-600 bg-red-100';
-    if (score >= 4) return 'text-yellow-600 bg-yellow-100';
-    return 'text-green-600 bg-green-100';
-  };
-
-  const getUrgencyLabel = (score: number) => {
-    if (score >= 7) return 'Alta';
-    if (score >= 4) return 'Media';
-    return 'Baja';
-  };
-
-  const resultButtons: { result: ReviewResult; label: string; classes: string }[] = [
-    { result: 'perfect', label: 'Perfecto', classes: 'bg-green-100 text-green-700 hover:bg-green-200' },
-    { result: 'good', label: 'Bien', classes: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
-    { result: 'regular', label: 'Regular', classes: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' },
-    { result: 'bad', label: 'Mal', classes: 'bg-red-100 text-red-700 hover:bg-red-200' },
-  ];
 
   const formatRelativeDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -357,216 +379,197 @@ export function ReviewsPage() {
     const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Mañana';
-    if (diffDays <= 7) return `En ${diffDays} días`;
+    if (diffDays === 1) return 'Manana';
+    if (diffDays <= 7) return `En ${diffDays} dias`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Repasos Pendientes</h1>
+          <h1 className="text-2xl font-bold">Repasos pendientes</h1>
           {sortedReviews.length > 0 && (
-            <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-sm font-medium">
+            <Badge variant="secondary" className="px-2.5 py-0.5 text-sm font-medium">
               {sortedReviews.length}
-            </span>
+            </Badge>
           )}
         </div>
-        <button
+        <Button
           onClick={() => setShowSettings(!showSettings)}
-          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-            showSettings
-              ? 'border-primary bg-primary/10 text-primary'
-              : 'border-border hover:bg-accent text-muted-foreground'
-          }`}
+          variant={showSettings ? 'primary' : 'secondary'}
+          className={cn('h-11 px-3 text-sm', !showSettings && 'text-muted-foreground')}
         >
           <Settings className="h-4 w-4" />
-          <span className="hidden sm:inline">Configuración</span>
-        </button>
+          <span className="hidden sm:inline">Configuracion</span>
+        </Button>
       </div>
 
-      {/* Settings panel */}
       {showSettings && (
         <ReviewSettingsPanel onClose={() => setShowSettings(false)} />
       )}
 
-      {/* Empty state */}
       {sortedReviews.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
-          No tienes repasos pendientes por hoy.
-          {(upcomingReviews ?? []).length > 0 && (
-            <p className="mt-1 text-sm">Revisa más abajo tus próximos repasos programados.</p>
-          )}
-        </div>
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            <p>No tienes repasos pendientes por hoy.</p>
+            {(upcomingReviews ?? []).length > 0 && (
+              <p className="mt-1 text-sm">Revisa mas abajo tus proximos repasos programados.</p>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {sortedReviews.map((review) => (
-            <div
-              key={review.id}
-              className="rounded-lg border border-border bg-card p-4 transition-colors"
-            >
-              {/* Card content */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: review.topic?.subject?.color || '#6366f1' }}
-                  />
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{review.topic?.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {review.topic?.subject?.name}
-                      {review.topic?.subject?.studyPlan?.name && (
-                        <> · {review.topic.subject.studyPlan.name}</>
-                      )}
-                    </p>
+            <Card key={review.id} className="transition-colors">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div
+                      className="mt-1 h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: review.topic?.subject?.color ?? SUBJECT_COLOR_FALLBACK }}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{review.topic?.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {review.topic?.subject?.name}
+                        {review.topic?.subject?.studyPlan?.name && (
+                          <> - {review.topic.subject.studyPlan.name}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <Badge variant={getUrgencyVariant(review.urgencyScore)} className="text-xs">
+                      Urgencia {getUrgencyLabel(review.urgencyScore)} ({review.urgencyScore.toFixed(1)})
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">
+                      <span>Repaso #{review.reviewNumber}</span>
+                      <span className="mx-1">-</span>
+                      <span>
+                        {new Date(review.scheduledDate).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  {/* Urgency badge */}
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getUrgencyColor(review.urgencyScore)}`}>
-                    {getUrgencyLabel(review.urgencyScore)} ({review.urgencyScore.toFixed(1)})
-                  </span>
-
-                  {/* Review number and date */}
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs text-muted-foreground">
-                      Repaso #{review.reviewNumber}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(review.scheduledDate).toLocaleDateString('es-ES', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </p>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        setExpandedReviewId(
-                          expandedReviewId === review.id ? null : review.id,
-                        )
-                      }
-                      disabled={isMutating}
-                      className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      Completar
-                    </button>
-                    <button
-                      onClick={() => skipReviewMutation.mutate(review.id)}
-                      disabled={isMutating}
-                      className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
-                    >
-                      <SkipForward className="h-3 w-3" />
-                      Saltar
-                    </button>
-                  </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button
+                    onClick={() =>
+                      setExpandedReviewId(
+                        expandedReviewId === review.id ? null : review.id,
+                      )
+                    }
+                    disabled={isMutating}
+                    className="h-11 w-full"
+                  >
+                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                    Completar
+                  </Button>
+                  <Button
+                    onClick={() => skipReviewMutation.mutate(review.id)}
+                    disabled={isMutating}
+                    variant="secondary"
+                    className="h-11 w-full"
+                  >
+                    <SkipForward className="mr-1 h-3.5 w-3.5" />
+                    Saltar
+                  </Button>
                 </div>
-              </div>
 
-              {/* Mobile: review number and date */}
-              <div className="flex items-center gap-2 mt-2 sm:hidden text-xs text-muted-foreground">
-                <span>Repaso #{review.reviewNumber}</span>
-                <span>·</span>
-                <span>
-                  {new Date(review.scheduledDate).toLocaleDateString('es-ES', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </span>
-              </div>
-
-              {/* Expanded result selector */}
-              {expandedReviewId === review.id && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    ¿Cómo fue el repaso?
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {resultButtons.map(({ result, label, classes }) => (
-                      <button
-                        key={result}
-                        onClick={() =>
-                          completeReviewMutation.mutate({
-                            id: review.id,
-                            result,
-                          })
-                        }
-                        disabled={isMutating}
-                        className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${classes}`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                {expandedReviewId === review.id && (
+                  <div className="mt-3 border-t border-border pt-3">
+                    <p className="mb-2 text-xs text-muted-foreground">Como fue el repaso?</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {resultButtons.map(({ result, label, variant }) => (
+                        <button
+                          key={result}
+                          onClick={() =>
+                            completeReviewMutation.mutate({
+                              id: review.id,
+                              result,
+                            })
+                          }
+                          disabled={isMutating}
+                          className={cn(
+                            'h-11 rounded-lg border px-3 text-xs font-medium transition-colors disabled:opacity-50',
+                            getResultButtonClass(variant)
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
-      {/* ─── Próximos repasos ─────────────────────── */}
-      <div className="space-y-4 pt-4 border-t border-border">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Próximos repasos</h2>
-          {(upcomingReviews ?? []).length > 0 && (
-            <span className="rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 text-sm font-medium">
-              {(upcomingReviews ?? []).length}
-            </span>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-lg">Proximos repasos</CardTitle>
+            {(upcomingReviews ?? []).length > 0 && (
+              <Badge variant="neutral" className="px-2.5 py-0.5 text-sm font-medium">
+                {(upcomingReviews ?? []).length}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {isLoadingUpcoming ? (
+            <div className="text-sm text-muted-foreground">Cargando proximos repasos...</div>
+          ) : (upcomingReviews ?? []).length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+              No hay repasos programados proximamente.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(upcomingReviews ?? []).map((review) => (
+                <div
+                  key={review.id}
+                  className="rounded-lg border border-border bg-surface p-3 sm:p-4"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div
+                        className="mt-1 h-3 w-3 shrink-0 rounded-full"
+                        style={{ backgroundColor: review.topic?.subject?.color ?? SUBJECT_COLOR_FALLBACK }}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{review.topic?.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {review.topic?.subject?.name}
+                          {review.topic?.subject?.studyPlan?.name && (
+                            <> - {review.topic.subject.studyPlan.name}</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-muted px-2 py-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {formatRelativeDate(review.scheduledDate)}
+                      </span>
+                      <span>Repaso #{review.reviewNumber}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </div>
-
-        {isLoadingUpcoming ? (
-          <div className="text-sm text-muted-foreground">Cargando próximos repasos...</div>
-        ) : (upcomingReviews ?? []).length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground text-sm">
-            No hay repasos programados próximamente.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {(upcomingReviews ?? []).map((review) => (
-              <div
-                key={review.id}
-                className="rounded-lg border border-border bg-card/50 p-3 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: review.topic?.subject?.color || '#6366f1' }}
-                  />
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{review.topic?.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {review.topic?.subject?.name}
-                      {review.topic?.subject?.studyPlan?.name && (
-                        <> · {review.topic.subject.studyPlan.name}</>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{formatRelativeDate(review.scheduledDate)}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">
-                    Repaso #{review.reviewNumber}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

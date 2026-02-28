@@ -4,6 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, ArrowLeft, BookOpen, X, Pencil, Trash2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import type { StudyPlan, Topic } from '../../types';
 
 interface SessionFormData {
@@ -14,6 +18,9 @@ interface SessionFormData {
   qualityRating?: number;
   notes?: string;
 }
+
+const MODAL_BACKDROP_CLASS = 'fixed inset-0 z-50 grid place-items-center bg-canvas/70 p-4 backdrop-blur-sm';
+const MODAL_PANEL_CLASS = 'w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-float';
 
 export function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
@@ -155,18 +162,26 @@ export function PlanDetailPage() {
   });
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Cargando plan...</div>;
+    return (
+      <div className="flex h-52 items-center justify-center">
+        <p className="text-sm text-muted-foreground">Cargando plan...</p>
+      </div>
+    );
   }
 
   if (!plan) {
-    return <div>Plan no encontrado</div>;
+    return (
+      <Card>
+        <CardContent className="p-6 text-sm text-muted-foreground">Plan no encontrado</CardContent>
+      </Card>
+    );
   }
 
   const getMasteryColor = (level: number) => {
-    if (level >= 7) return 'text-green-600';
-    if (level >= 5) return 'text-yellow-600';
-    if (level >= 3) return 'text-orange-600';
-    return 'text-red-600';
+    if (level >= 7) return 'text-state-success';
+    if (level >= 5) return 'text-brand-secondary-700';
+    if (level >= 3) return 'text-state-warning';
+    return 'text-state-danger';
   };
 
   const getStatusLabel = (status: Topic['status']) => {
@@ -177,13 +192,19 @@ export function PlanDetailPage() {
     }
   };
 
+  const getStatusVariant = (status: Topic['status']) => {
+    if (status === 'mastered') return 'success';
+    if (status === 'in_progress') return 'secondary';
+    return 'neutral';
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <Link
           to="/studies"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Planes de estudio
@@ -201,60 +222,64 @@ export function PlanDetailPage() {
             }}
             className="space-y-3"
           >
-            <input
-              type="text"
-              value={editingPlan.name}
-              onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-ring"
-              autoFocus
-            />
-            <input
-              type="text"
-              value={editingPlan.description}
-              onChange={(e) => setEditingPlan({ ...editingPlan, description: e.target.value })}
-              placeholder="Descripción (opcional)"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <div className="flex gap-2">
-              <button
+              <Input
+                type="text"
+                value={editingPlan.name}
+                onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
+                className="h-12 text-lg font-bold"
+                autoFocus
+              />
+              <Input
+                type="text"
+                value={editingPlan.description}
+                onChange={(e) => setEditingPlan({ ...editingPlan, description: e.target.value })}
+                placeholder="Descripcion (opcional)"
+                className="h-11"
+              />
+              <div className="flex gap-2">
+              <Button
                 type="submit"
                 disabled={updatePlanMutation.isPending}
-                className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                size="sm"
+                className="gap-1.5"
               >
                 <Check className="h-4 w-4" />
                 Guardar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setEditingPlan(null)}
-                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+                variant="secondary"
+                size="sm"
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
           </form>
         ) : deletingPlan ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
-            <p className="text-sm font-medium text-red-900">
+          <div className="space-y-3 rounded-xl border border-state-danger/25 bg-state-danger-soft p-4 text-state-danger-foreground">
+            <p className="text-sm font-semibold">
               ¿Eliminar &quot;{plan.name}&quot;?
             </p>
-            <p className="text-xs text-red-700">
+            <p className="text-xs text-state-danger-foreground/85">
               Se eliminarán todas sus asignaturas, temas, sesiones y repasos. Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => deletePlanMutation.mutate()}
                 disabled={deletePlanMutation.isPending}
-                className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                variant="destructive"
+                size="sm"
               >
                 {deletePlanMutation.isPending ? 'Eliminando...' : 'Eliminar plan'}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setDeletingPlan(false)}
-                className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                variant="secondary"
+                size="sm"
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -263,32 +288,36 @@ export function PlanDetailPage() {
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{plan.name}</h1>
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
                     onClick={() => setEditingPlan({
                       name: plan.name,
                       description: plan.description || '',
                     })}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground"
                     title="Editar plan"
                   >
                     <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setDeletingPlan(true)}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:bg-state-danger-soft hover:text-state-danger-foreground"
                     title="Eliminar plan"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <button
+              <Button
                 onClick={() => setShowSubjectForm(!showSubjectForm)}
-                className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                className="h-11 gap-2"
               >
                 <Plus className="h-4 w-4" />
                 Nueva asignatura
-              </button>
+              </Button>
             </div>
             {plan.description && (
               <p className="text-muted-foreground text-sm mt-1">{plan.description}</p>
@@ -299,51 +328,52 @@ export function PlanDetailPage() {
 
       {/* Form nueva asignatura */}
       {showSubjectForm && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            createSubjectMutation.mutate({
-              studyPlanId: planId!,
-              name: newSubject.name,
-              color: newSubject.color,
-            });
-          }}
-          className="rounded-lg border border-border p-4 flex gap-3 items-end"
-        >
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Nombre de la asignatura"
-              value={newSubject.name}
-              onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              autoFocus
-            />
-          </div>
-          <input
-            type="color"
-            value={newSubject.color}
-            onChange={(e) => setNewSubject({ ...newSubject, color: e.target.value })}
-            className="h-9 w-9 rounded border border-input cursor-pointer"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-          >
-            Crear
-          </button>
-        </form>
+        <Card>
+          <CardContent className="p-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                createSubjectMutation.mutate({
+                  studyPlanId: planId!,
+                  name: newSubject.name,
+                  color: newSubject.color,
+                });
+              }}
+              className="flex flex-wrap items-end gap-3"
+            >
+              <div className="min-w-[220px] flex-1">
+                <Input
+                  type="text"
+                  placeholder="Nombre de la asignatura"
+                  value={newSubject.name}
+                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                  className="h-11"
+                  autoFocus
+                />
+              </div>
+              <input
+                type="color"
+                value={newSubject.color}
+                onChange={(e) => setNewSubject({ ...newSubject, color: e.target.value })}
+                className="h-11 w-11 cursor-pointer rounded-lg border border-input bg-surface"
+              />
+              <Button type="submit" className="h-11">Crear</Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Asignaturas y temas */}
       {plan.subjects?.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
-          Añade tu primera asignatura para empezar
-        </div>
+        <Card>
+          <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-8 text-center text-muted-foreground">
+            Añade tu primera asignatura para empezar
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {plan.subjects?.map((subject) => (
-            <div key={subject.id} className="rounded-lg border border-border">
+            <Card key={subject.id} className="overflow-hidden border-border/90">
               {/* Header asignatura */}
               {editingSubject?.id === subject.id ? (
                 <form
@@ -355,7 +385,7 @@ export function PlanDetailPage() {
                       data: { name: editingSubject.name, color: editingSubject.color },
                     });
                   }}
-                  className="flex items-center gap-3 border-b border-border p-4"
+                  className="flex items-center gap-3 border-b border-border bg-surface-muted p-4"
                 >
                   <input
                     type="color"
@@ -363,50 +393,55 @@ export function PlanDetailPage() {
                     onChange={(e) => setEditingSubject({ ...editingSubject, color: e.target.value })}
                     className="h-8 w-8 rounded border border-input cursor-pointer"
                   />
-                  <input
+                  <Input
                     type="text"
                     value={editingSubject.name}
                     onChange={(e) => setEditingSubject({ ...editingSubject, name: e.target.value })}
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="h-10 flex-1 font-semibold"
                     autoFocus
                   />
-                  <button
+                  <Button
                     type="submit"
                     disabled={updateSubjectMutation.isPending}
-                    className="rounded-md bg-primary p-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    size="icon"
+                    className="h-9 w-9"
                   >
                     <Check className="h-4 w-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setEditingSubject(null)}
-                    className="rounded-md border border-border p-1.5 hover:bg-accent"
+                    variant="secondary"
+                    size="icon"
+                    className="h-9 w-9"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </form>
               ) : deletingSubjectId === subject.id ? (
-                <div className="border-b border-border p-4 space-y-2">
-                  <p className="text-sm font-medium">
+                <div className="space-y-2 border-b border-state-danger/25 bg-state-danger-soft p-4 text-state-danger-foreground">
+                  <p className="text-sm font-semibold">
                     ¿Eliminar &quot;{subject.name}&quot;?
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-state-danger-foreground/85">
                     Se eliminarán todos sus temas. Esta acción no se puede deshacer.
                   </p>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={() => deleteSubjectMutation.mutate(subject.id)}
                       disabled={deleteSubjectMutation.isPending}
-                      className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      variant="destructive"
+                      size="sm"
                     >
                       {deleteSubjectMutation.isPending ? 'Eliminando...' : 'Eliminar'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => setDeletingSubjectId(null)}
-                      className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                      variant="secondary"
+                      size="sm"
                     >
                       Cancelar
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -416,9 +451,9 @@ export function PlanDetailPage() {
                     style={{ backgroundColor: subject.color }}
                   />
                   <h2 className="font-semibold">{subject.name}</h2>
-                  <span className="text-xs text-muted-foreground">
+                  <Badge variant="neutral" className="text-[11px]">
                     {subject.topics?.length || 0} temas
-                  </span>
+                  </Badge>
                   <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/subject:opacity-100 transition-opacity">
                     <button
                       onClick={() => setEditingSubject({
@@ -426,14 +461,14 @@ export function PlanDetailPage() {
                         name: subject.name,
                         color: subject.color,
                       })}
-                      className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="rounded-md p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
                       title="Editar asignatura"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setDeletingSubjectId(subject.id)}
-                      className="rounded-md p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                      className="rounded-md p-1 text-muted-foreground hover:bg-state-danger-soft hover:text-state-danger-foreground"
                       title="Eliminar asignatura"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -447,7 +482,7 @@ export function PlanDetailPage() {
                 {subject.topics?.map((topic) => (
                   <div
                     key={topic.id}
-                    className="group/topic flex items-center justify-between p-3 px-4 hover:bg-accent/30 transition-colors"
+                    className="group/topic flex items-center justify-between p-3 px-4 transition-colors hover:bg-surface-muted/80"
                   >
                     {editingTopic?.id === topic.id ? (
                       <form
@@ -461,46 +496,51 @@ export function PlanDetailPage() {
                         }}
                         className="flex items-center gap-2 flex-1"
                       >
-                        <input
+                        <Input
                           type="text"
                           value={editingTopic.name}
                           onChange={(e) => setEditingTopic({ ...editingTopic, name: e.target.value })}
-                          className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          className="h-9 flex-1"
                           autoFocus
                         />
-                        <button
+                        <Button
                           type="submit"
                           disabled={updateTopicMutation.isPending}
-                          className="rounded-md bg-primary p-1 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                          size="icon"
+                          className="h-8 w-8"
                         >
                           <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={() => setEditingTopic(null)}
-                          className="rounded-md border border-border p-1 hover:bg-accent"
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8"
                         >
                           <X className="h-3.5 w-3.5" />
-                        </button>
+                        </Button>
                       </form>
                     ) : deletingTopicId === topic.id ? (
                       <div className="flex items-center gap-3 flex-1">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-state-danger-foreground">
                           ¿Eliminar &quot;{topic.name}&quot;?
                         </span>
-                        <button
+                        <Button
                           onClick={() => deleteTopicMutation.mutate(topic.id)}
                           disabled={deleteTopicMutation.isPending}
-                          className="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                          variant="destructive"
+                          size="sm"
                         >
                           {deleteTopicMutation.isPending ? '...' : 'Eliminar'}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setDeletingTopicId(null)}
-                          className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent"
+                          variant="secondary"
+                          size="sm"
                         >
                           Cancelar
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <>
@@ -511,9 +551,9 @@ export function PlanDetailPage() {
                           >
                             {topic.name}
                           </Link>
-                          <span className="text-xs text-muted-foreground">
+                          <Badge variant={getStatusVariant(topic.status)} className="text-[11px]">
                             {getStatusLabel(topic.status)}
-                          </span>
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-medium ${getMasteryColor(topic.masteryLevel)}`}>
@@ -522,20 +562,20 @@ export function PlanDetailPage() {
                           <div className="flex items-center gap-1 opacity-0 group-hover/topic:opacity-100 transition-opacity">
                             <button
                               onClick={() => setEditingTopic({ id: topic.id, name: topic.name })}
-                              className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                              className="rounded-md p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
                               title="Editar tema"
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => setDeletingTopicId(topic.id)}
-                              className="rounded-md p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                              className="rounded-md p-1 text-muted-foreground hover:bg-state-danger-soft hover:text-state-danger-foreground"
                               title="Eliminar tema"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
-                          <button
+                          <Button
                             onClick={() =>
                               setSessionForm({
                                 topicId: topic.id,
@@ -544,11 +584,13 @@ export function PlanDetailPage() {
                               })
                             }
                             disabled={createSessionMutation.isPending}
-                            className="flex items-center gap-1 text-xs rounded bg-primary/10 text-primary px-2 py-1 hover:bg-primary/20 transition-colors disabled:opacity-50"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 gap-1 border-brand-primary-100 bg-brand-primary-100 text-brand-primary-700 hover:bg-brand-primary-100/80"
                           >
                             <BookOpen className="h-3 w-3" />
                             Estudiar
-                          </button>
+                          </Button>
                         </div>
                       </>
                     )}
@@ -557,7 +599,7 @@ export function PlanDetailPage() {
               </div>
 
               {/* Añadir tema */}
-              <div className="p-3 px-4 border-t border-border">
+              <div className="border-t border-border p-3 px-4">
                 {showTopicForm === subject.id ? (
                   <form
                     onSubmit={(e) => {
@@ -569,57 +611,60 @@ export function PlanDetailPage() {
                         });
                       }
                     }}
-                    className="flex gap-2"
+                    className="flex flex-wrap gap-2"
                   >
-                    <input
+                    <Input
                       type="text"
                       placeholder="Nombre del tema"
                       value={newTopic}
                       onChange={(e) => setNewTopic(e.target.value)}
-                      className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="h-9 flex-1 min-w-[180px]"
                       autoFocus
                     />
-                    <button
-                      type="submit"
-                      className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-                    >
+                    <Button type="submit" size="sm" className="h-9">
                       Añadir
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => { setShowTopicForm(null); setNewTopic(''); }}
-                      className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                      variant="secondary"
+                      size="sm"
+                      className="h-9"
                     >
                       Cancelar
-                    </button>
+                    </Button>
                   </form>
                 ) : (
-                  <button
+                  <Button
                     onClick={() => setShowTopicForm(subject.id)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1 px-0 text-xs text-muted-foreground hover:text-foreground"
                   >
                     <Plus className="h-3 w-3" />
                     Añadir tema
-                  </button>
+                  </Button>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Session form dialog */}
       {sessionForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg mx-4">
+        <div className={MODAL_BACKDROP_CLASS}>
+          <div className={MODAL_PANEL_CLASS}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Registrar sesión</h3>
-              <button
+              <Button
                 onClick={() => setSessionForm(null)}
-                className="rounded-md p-1 hover:bg-accent"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <p className="text-sm text-muted-foreground mb-4">
@@ -650,20 +695,21 @@ export function PlanDetailPage() {
                       { value: 'review', label: 'Repaso' },
                       { value: 'practice', label: 'Práctica' },
                     ].map(({ value, label }) => (
-                      <button
+                      <Button
                         key={value}
                         type="button"
                         onClick={() =>
                           setSessionForm({ ...sessionForm, sessionType: value })
                         }
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                        variant="secondary"
+                        className={`h-11 flex-1 border text-sm font-medium transition-colors ${
                           sessionForm.sessionType === value
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border hover:bg-accent'
+                            ? 'border-brand-primary-500/40 bg-brand-primary-100 text-brand-primary-700'
+                            : 'border-border'
                         }`}
                       >
                         {label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -674,7 +720,7 @@ export function PlanDetailPage() {
                 <label htmlFor="session-duration" className="block text-sm font-medium mb-1.5">
                   Duración (minutos) <span className="text-muted-foreground font-normal">— opcional</span>
                 </label>
-                <input
+                <Input
                   id="session-duration"
                   type="number"
                   min={1}
@@ -687,7 +733,7 @@ export function PlanDetailPage() {
                       durationMinutes: e.target.value ? parseInt(e.target.value) : undefined,
                     })
                   }
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-11"
                 />
               </div>
 
@@ -698,7 +744,7 @@ export function PlanDetailPage() {
                 </label>
                 <div className="flex gap-1.5">
                   {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
+                    <Button
                       key={rating}
                       type="button"
                       onClick={() =>
@@ -708,14 +754,15 @@ export function PlanDetailPage() {
                             sessionForm.qualityRating === rating ? undefined : rating,
                         })
                       }
-                      className={`flex-1 rounded-md border py-2 text-sm font-medium transition-colors ${
+                      variant="secondary"
+                      className={`h-11 flex-1 border text-sm font-medium transition-colors ${
                         sessionForm.qualityRating === rating
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:bg-accent'
+                          ? 'border-brand-primary-500/40 bg-brand-primary-100 text-brand-primary-700'
+                          : 'border-border'
                       }`}
                     >
                       {rating}
-                    </button>
+                    </Button>
                   ))}
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -740,26 +787,27 @@ export function PlanDetailPage() {
                     })
                   }
                   rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  className="w-full resize-none rounded-lg border border-input bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 />
               </div>
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => setSessionForm(null)}
-                  className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
+                  variant="secondary"
+                  className="h-11"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={createSessionMutation.isPending}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="h-11"
                 >
                   {createSessionMutation.isPending ? 'Registrando...' : 'Registrar sesión'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

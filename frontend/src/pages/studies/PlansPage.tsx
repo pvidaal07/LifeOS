@@ -4,6 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, BookOpen, ChevronRight, Pencil, Trash2, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import type { StudyPlan } from '../../types';
 
 export function PlansPage() {
@@ -64,85 +68,80 @@ export function PlansPage() {
   };
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Cargando planes...</div>;
+    return (
+      <div className="flex h-52 items-center justify-center">
+        <p className="text-sm text-muted-foreground">Cargando planes...</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Planes de Estudio</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             Organiza tus estudios por planes, asignaturas y temas
           </p>
         </div>
-        <button
+        <Button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="h-11 gap-2"
         >
           <Plus className="h-4 w-4" />
           Nuevo plan
-        </button>
+        </Button>
       </div>
 
-      {/* Formulario nuevo plan */}
       {showForm && (
-        <form
-          onSubmit={handleCreate}
-          className="rounded-lg border border-border p-4 space-y-3"
-        >
-          <input
-            type="text"
-            placeholder="Nombre del plan (ej: Oposiciones 2026)"
-            value={newPlan.name}
-            onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            autoFocus
-          />
-          <input
-            type="text"
-            placeholder="Descripción (opcional)"
-            value={newPlan.description}
-            onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              Crear
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <form onSubmit={handleCreate} className="space-y-3">
+              <Input
+                type="text"
+                placeholder="Nombre del plan (ej: Oposiciones 2026)"
+                value={newPlan.name}
+                onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                className="h-11"
+                autoFocus
+              />
+              <Input
+                type="text"
+                placeholder="Descripcion (opcional)"
+                value={newPlan.description}
+                onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                className="h-11"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" disabled={createMutation.isPending} className="h-11">
+                  Crear
+                </Button>
+                <Button type="button" onClick={() => setShowForm(false)} variant="secondary" className="h-11">
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Lista de planes */}
       {plans?.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-medium">Sin planes de estudio</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Crea tu primer plan para empezar a organizar tus estudios
-          </p>
-        </div>
+        <Card>
+          <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-12 text-center">
+            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-medium">Sin planes de estudio</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Crea tu primer plan para empezar a organizar tus estudios
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {plans?.map((plan) => (
-            <div
+            <Card
               key={plan.id}
-              className="group rounded-lg border border-border p-5 hover:border-primary/50 hover:shadow-sm transition-all relative"
+              className="group relative border-border/90 transition-all duration-200 hover:border-brand-primary-500/45 hover:shadow-soft"
             >
-              {/* Edit inline */}
               {editingPlan?.id === plan.id ? (
                 <form
                   onSubmit={(e) => {
@@ -156,70 +155,73 @@ export function PlansPage() {
                       },
                     });
                   }}
-                  className="space-y-2"
+                  className="space-y-2 p-5"
                 >
-                  <input
+                  <Input
                     type="text"
                     value={editingPlan.name}
                     onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="h-10"
                     autoFocus
                   />
-                  <input
+                  <Input
                     type="text"
                     value={editingPlan.description}
                     onChange={(e) => setEditingPlan({ ...editingPlan, description: e.target.value })}
-                    placeholder="Descripción (opcional)"
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="Descripcion (opcional)"
+                    className="h-10"
                   />
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       type="submit"
                       disabled={updateMutation.isPending}
-                      className="rounded-md bg-primary p-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      size="icon"
+                      className="h-9 w-9"
                     >
                       <Check className="h-4 w-4" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => setEditingPlan(null)}
-                      className="rounded-md border border-border p-1.5 hover:bg-accent"
+                      variant="secondary"
+                      size="icon"
+                      className="h-9 w-9"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                 </form>
               ) : deletingPlanId === plan.id ? (
-                /* Delete confirmation */
-                <div className="space-y-3">
-                  <p className="text-sm font-medium">
+                <div className="space-y-3 rounded-xl border border-state-danger/25 bg-state-danger-soft p-5 text-state-danger-foreground">
+                  <p className="text-sm font-semibold">
                     ¿Eliminar &quot;{plan.name}&quot;?
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-state-danger-foreground/85">
                     Se eliminarán todas sus asignaturas y temas. Esta acción no se puede deshacer.
                   </p>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={() => deleteMutation.mutate(plan.id)}
                       disabled={deleteMutation.isPending}
-                      className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      variant="destructive"
+                      size="sm"
                     >
                       {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => setDeletingPlanId(null)}
-                      className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                      variant="secondary"
+                      size="sm"
                     >
                       Cancelar
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
-                /* Normal card */
-                <>
+                <CardContent className="space-y-4 p-5">
                   <div className="flex items-start justify-between">
                     <Link to={`/studies/${plan.id}`} className="flex-1 min-w-0">
-                      <h3 className="font-semibold group-hover:text-primary transition-colors">
+                      <h3 className="font-semibold text-text-primary transition-colors group-hover:text-primary">
                         {plan.name}
                       </h3>
                       {plan.description && (
@@ -238,7 +240,7 @@ export function PlansPage() {
                             description: plan.description || '',
                           });
                         }}
-                        className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent opacity-0 group-hover:opacity-100 transition-all"
+                        className="rounded-md p-1.5 text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 opacity-0 group-hover:opacity-100"
                         title="Editar plan"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -248,7 +250,7 @@ export function PlansPage() {
                           e.preventDefault();
                           setDeletingPlanId(plan.id);
                         }}
-                        className="rounded-md p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                        className="rounded-md p-1.5 text-muted-foreground transition-all hover:bg-state-danger-soft hover:text-state-danger-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-state-danger/30 opacity-0 group-hover:opacity-100"
                         title="Eliminar plan"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -258,13 +260,15 @@ export function PlansPage() {
                       </Link>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>{plan.subjects?.length || 0} asignaturas</span>
-                    <span className="capitalize">{plan.status === 'active' ? 'Activo' : plan.status}</span>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant="neutral">{plan.subjects?.length || 0} asignaturas</Badge>
+                    <Badge variant={plan.status === 'active' ? 'success' : 'outline'} className="capitalize">
+                      {plan.status === 'active' ? 'Activo' : plan.status}
+                    </Badge>
                   </div>
-                </>
+                </CardContent>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
