@@ -1,218 +1,122 @@
-# 🧠 LifeOS
+# LifeOS
 
-> Tu sistema operativo personal — organiza tu vida en un solo lugar.
+<div align="center">
 
-LifeOS es una plataforma modular que conecta planificación diaria con tus áreas clave: estudio, deporte, nutrición y más. El MVP se centra en el **módulo de Estudios** con un sistema inteligente de repasos.
+### Tu sistema operativo personal para estudiar y vivir con claridad
 
----
+_Un solo lugar para planificar, ejecutar y mejorar tu progreso real._
 
-## 📐 Stack Tecnológico
-
-| Capa | Tecnología |
-|------|-----------|
-| **Backend** | NestJS (TypeScript) |
-| **Base de datos** | PostgreSQL 16 (Docker) |
-| **ORM** | Prisma |
-| **Frontend** | React + Vite (TypeScript) |
-| **UI** | shadcn/ui + Tailwind CSS |
-| **State** | Zustand + TanStack Query |
-| **Auth** | JWT (access + refresh tokens) |
-| **API Docs** | Swagger (auto-generado) |
-| **Testing** | Vitest |
-| **Infra** | Docker Compose |
+</div>
 
 ---
 
-## 🚀 Inicio Rápido (Desarrollo)
+## La idea detras de LifeOS
 
-### Requisitos previos
-- **Node.js** v20+
-- **Docker** y **Docker Compose**
-- **npm** v9+
+La mayoria de apps personales se quedan en listas o notas sueltas. LifeOS nace para unir **planificacion + accion + feedback** en un mismo flujo.
 
-### 1. Clonar y configurar variables de entorno
+En vez de guardar informacion y olvidarla, LifeOS convierte objetivos en trabajo diario medible:
 
-```bash
-git clone <tu-repo-url> LifeOS
-cd LifeOS
+- Definir que quieres conseguir
+- Dividirlo en unidades claras
+- Registrar sesiones reales de trabajo
+- Reforzar lo aprendido con repasos espaciados
+- Ver tu avance de forma accionable
 
-# Root
-cp .env.example .env
+---
 
-# Backend
-cp backend/.env.example backend/.env
-```
+## Que problema resuelve
 
-### 2. Levantar la base de datos
+```text
+Sin sistema:                  Con LifeOS:
 
-```bash
-docker compose up -d
-```
-
-Esto levanta:
-- **PostgreSQL** en `localhost:5432`
-- **pgAdmin** en `localhost:5050` (admin@lifeos.dev / admin)
-
-### 3. Instalar dependencias y configurar backend
-
-```bash
-cd backend
-npm install
-
-# Generar el cliente Prisma
-npx prisma generate
-
-# Ejecutar migraciones
-npx prisma migrate dev --name init
-
-# (Opcional) Cargar datos de ejemplo
-npm run prisma:seed
-```
-
-### 4. Instalar dependencias del frontend
-
-```bash
-cd ../frontend
-npm install
-
-# (Opcional) Añadir componentes shadcn/ui
-npx shadcn-ui@latest add button card input label
-```
-
-### 5. Arrancar en desarrollo
-
-En **dos terminales**:
-
-```bash
-# Terminal 1 — Backend
-cd backend
-npm run start:dev
-```
-
-```bash
-# Terminal 2 — Frontend
-cd frontend
-npm run dev
-```
-
-- 🖥️ **Frontend**: http://localhost:5173
-- 🔧 **API**: http://localhost:3000/api/v1
-- 📚 **Swagger**: http://localhost:3000/api/docs
-- 🗄️ **pgAdmin**: http://localhost:5050
-
-### Usuario demo
-```
-Email:    demo@lifeos.dev
-Password: demo1234
+Objetivos abstractos          Objetivos aterrizados en planes
+Temas sin seguimiento         Temas con sesiones y repaso
+Estudio por impulso           Estudio guiado por prioridades
+Sensacion de "no avanzo"      Progreso visible y medible
 ```
 
 ---
 
-## 🏗️ Estructura del Proyecto
+## MVP actual: modulo de Estudios
 
-```
+Hoy LifeOS esta centrado en un MVP funcional de estudio, con este recorrido:
+
+`Plan -> Asignaturas -> Temas -> Sesiones -> Repasos`
+
+Incluye:
+
+- Gestion de planes, asignaturas y temas
+- Registro de sesiones de estudio
+- Sistema de repaso espaciado
+- Dashboard diario con foco en "que toca hoy"
+- Autenticacion por usuario (cada cuenta solo ve sus datos)
+
+---
+
+## Filosofia del producto
+
+- **Simple por fuera, potente por dentro**: interfaz clara con reglas solidas
+- **Progreso real**: menos ruido, mas ejecucion
+- **Modular**: Estudios es el primer modulo; el sistema crece hacia otras areas
+- **Personal**: cada dato pertenece al usuario autenticado
+
+---
+
+## Stack tecnico
+
+| Capa | Tecnologia |
+|------|------------|
+| Frontend | React + Vite + TypeScript |
+| UI | Tailwind CSS + shadcn/ui |
+| Estado | Zustand + TanStack Query |
+| Backend | NestJS + TypeScript |
+| Persistencia | PostgreSQL + Prisma |
+| Auth | JWT (access + refresh tokens) |
+| Testing | Vitest |
+| Infra | Docker Compose |
+
+---
+
+## Arquitectura del repo
+
+```text
 LifeOS/
-├── docker-compose.yml          # PostgreSQL + pgAdmin (desarrollo)
-├── docker-compose.prod.yml     # Todo en Docker (producción)
-├── .env.example
-│
-├── backend/                    # API NestJS
-│   ├── prisma/
-│   │   ├── schema.prisma       # Modelos de la base de datos
-│   │   └── seed.ts             # Datos iniciales
-│   ├── src/
-│   │   ├── common/             # Guards, interceptors, DTOs
-│   │   ├── config/             # Configuración centralizada
-│   │   ├── prisma/             # Servicio Prisma (global)
-│   │   └── modules/
-│   │       ├── auth/           # Login, registro, JWT
-│   │       ├── users/          # Perfil, settings, módulos
-│   │       ├── studies/        # MÓDULO ESTUDIOS (MVP)
-│   │       │   ├── plans/      # Planes de estudio
-│   │       │   ├── subjects/   # Asignaturas
-│   │       │   ├── topics/     # Temas + dominio
-│   │       │   ├── sessions/   # Sesiones de estudio
-│   │       │   └── reviews/    # Repasos + algoritmo
-│   │       └── dashboard/      # Panel "Hoy"
-│   └── Dockerfile
-│
-├── frontend/                   # React + Vite
-│   ├── src/
-│   │   ├── api/                # Clientes API (axios)
-│   │   ├── components/layout/  # Sidebar, Header, Layout
-│   │   ├── hooks/              # Custom hooks (useAuth)
-│   │   ├── pages/              # Páginas
-│   │   ├── routes/             # Configuración de rutas
-│   │   ├── stores/             # Estado global (Zustand)
-│   │   └── types/              # Tipos TypeScript
-│   └── Dockerfile
-│
-├── nginx/                      # Reverse proxy (producción)
-└── docs/
-    └── README.md               # Visión completa del proyecto
+|- backend/    API y reglas de negocio
+|- frontend/   App web
+|- db/         Configuracion de base de datos y entorno
+|- docs/       Vision de producto y alcance
+|- skills/     Reglas y guias de desarrollo asistido por IA
 ```
 
 ---
 
-## 🧪 Testing
+## Para levantar el proyecto en local
 
-```bash
-# Backend
-cd backend && npm test
+Toda la guia de instalacion y arranque se movio a:
 
-# Frontend
-cd frontend && npm test
-```
+- `SETUP-INFO.md`
+
+Si quieres clonar, configurar variables, levantar Docker y arrancar frontend/backend, sigue ese archivo paso a paso.
 
 ---
 
-## 🚢 Despliegue en Producción (VPS)
+## Roadmap (vision)
 
-```bash
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con valores de producción (JWT_SECRET, DB_PASSWORD, etc.)
-
-# Levantar todo
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-Esto levanta: PostgreSQL + Backend (con migraciones) + Frontend + Nginx en el puerto 80.
+- Modulo de estudios mas completo (analitica y mejores flujos)
+- Expansion a otras areas personales (salud, habitos, productividad)
+- Mejoras de experiencia diaria y personalizacion
+- Despliegue self-host para uso personal estable
 
 ---
 
-## 📋 API Endpoints (MVP)
+## Estado del proyecto
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| **Auth** | | |
-| POST | `/api/v1/auth/register` | Registrar usuario |
-| POST | `/api/v1/auth/login` | Iniciar sesión |
-| POST | `/api/v1/auth/refresh` | Refrescar token |
-| POST | `/api/v1/auth/logout` | Cerrar sesión |
-| **Users** | | |
-| GET | `/api/v1/users/me` | Obtener perfil |
-| PATCH | `/api/v1/users/me` | Actualizar perfil |
-| PATCH | `/api/v1/users/me/settings` | Actualizar configuración |
-| PUT | `/api/v1/users/me/modules` | Configurar módulos del menú |
-| **Estudios** | | |
-| GET/POST | `/api/v1/studies/plans` | Planes de estudio |
-| GET/PATCH/DELETE | `/api/v1/studies/plans/:id` | Plan específico |
-| GET/POST | `/api/v1/studies/subjects` | Asignaturas |
-| GET/PATCH/DELETE | `/api/v1/studies/subjects/:id` | Asignatura específica |
-| GET/POST | `/api/v1/studies/topics` | Temas |
-| GET/PATCH/DELETE | `/api/v1/studies/topics/:id` | Tema específico |
-| POST | `/api/v1/studies/sessions` | Registrar sesión de estudio |
-| GET | `/api/v1/studies/sessions/recent` | Sesiones recientes |
-| **Repasos** | | |
-| GET | `/api/v1/studies/reviews/pending` | Repasos pendientes |
-| POST | `/api/v1/studies/reviews/:id/complete` | Completar repaso |
-| POST | `/api/v1/studies/reviews/:id/skip` | Saltar repaso |
-| **Inicio** | | |
-| GET | `/api/v1/dashboard` | Panel "Hoy" completo |
+LifeOS esta en evolucion activa. El objetivo actual es consolidar un MVP de estudio realmente util antes de ampliar modulos.
+
+Si quieres contribuir, revisar ideas o construir encima del proyecto, bienvenido.
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 MIT

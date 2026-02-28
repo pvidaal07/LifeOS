@@ -51,7 +51,7 @@ export function Header() {
             {user?.name}
           </span>
           <Button variant="ghost" size="sm" onClick={() => logout()}>
-            Cerrar sesion
+            Cerrar sesión
           </Button>
         </div>
       </div>

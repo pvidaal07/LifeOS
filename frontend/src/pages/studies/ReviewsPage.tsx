@@ -379,8 +379,8 @@ export function ReviewsPage() {
     const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Manana';
-    if (diffDays <= 7) return `En ${diffDays} dias`;
+    if (diffDays === 1) return 'Mañana';
+    if (diffDays <= 7) return `En ${diffDays} días`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
@@ -401,7 +401,7 @@ export function ReviewsPage() {
           className={cn('h-11 px-3 text-sm', !showSettings && 'text-muted-foreground')}
         >
           <Settings className="h-4 w-4" />
-          <span className="hidden sm:inline">Configuracion</span>
+          <span className="hidden sm:inline">Configuración</span>
         </Button>
       </div>
 
@@ -414,7 +414,7 @@ export function ReviewsPage() {
           <CardContent className="p-8 text-center text-muted-foreground">
             <p>No tienes repasos pendientes por hoy.</p>
             {(upcomingReviews ?? []).length > 0 && (
-              <p className="mt-1 text-sm">Revisa mas abajo tus proximos repasos programados.</p>
+              <p className="mt-1 text-sm">Revisa más abajo tus próximos repasos programados.</p>
             )}
           </CardContent>
         </Card>
@@ -483,7 +483,7 @@ export function ReviewsPage() {
 
                 {expandedReviewId === review.id && (
                   <div className="mt-3 border-t border-border pt-3">
-                    <p className="mb-2 text-xs text-muted-foreground">Como fue el repaso?</p>
+                    <p className="mb-2 text-xs text-muted-foreground">¿Cómo fue el repaso?</p>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {resultButtons.map(({ result, label, variant }) => (
                         <button

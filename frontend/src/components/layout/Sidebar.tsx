@@ -97,7 +97,8 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       {/* Footer */}
       <div className="border-t border-white/10 px-6 py-4">
         <p className="text-xs text-sidebar-muted/60">
-          Study first release shell
+        {/* añade un enlace en el nombre */}
+          Made with ❤️ in Alcorisa by <a href="https://www.linkedin.com/in/paúl-vidal-768642382" target='_blank' className="underline">Paúl Vidal</a>. Version 0.1.0.
         </p>
       </div>
     </>

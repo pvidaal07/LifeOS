@@ -39,7 +39,7 @@ describe('Main layout shell branding', () => {
     expect(screen.getAllByText('LifeOS').length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cerrar sesion' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
   });
 
   it('renders hamburger button for mobile navigation', () => {
