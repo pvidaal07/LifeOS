@@ -39,7 +39,7 @@ export function Header() {
             </svg>
           </button>
 
-          <img src={logoMark} alt="LifeOS" className="h-8 w-8 rounded-md border border-border bg-canvas p-1 lg:hidden" />
+          <img src={logoMark} alt="LifeOS" className="h-10 w-10 rounded-md border border-border bg-canvas p-1 lg:hidden" />
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.08em] text-text-muted">LifeOS</p>
             <h1 className="truncate text-sm font-semibold text-text-primary sm:text-base">{sectionTitle}</h1>

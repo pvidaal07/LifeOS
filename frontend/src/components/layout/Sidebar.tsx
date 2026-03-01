@@ -38,7 +38,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       {/* Brand */}
       <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
         <div className="flex items-center gap-3">
-          <img src={logoMark} alt="LifeOS" className="h-9 w-9 rounded-lg" />
+          <img src={logoMark} alt="LifeOS" className="h-11 w-11 rounded-lg" />
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
             LifeOS
           </span>

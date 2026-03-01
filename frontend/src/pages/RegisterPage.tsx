@@ -28,7 +28,7 @@ export function RegisterPage() {
       <div className="auth-card relative mx-4 w-full max-w-[460px] sm:mx-6">
         {/* Brand mark */}
         <div className="flex items-center justify-center gap-2.5">
-          <img src={logoIcon} alt="LifeOS mark" className="h-12 w-12 sm:h-14 sm:w-14" />
+          <img src={logoIcon} alt="LifeOS mark" className="h-14 w-14 sm:h-16 sm:w-16" />
           <span className="text-xl font-semibold text-slate-800">LifeOS</span>
         </div>
 
