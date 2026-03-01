@@ -71,6 +71,12 @@ export class UserPrismaRepository implements UserRepositoryPort {
         name: data.name,
         avatarUrl: data.avatarUrl,
         isActive: data.isActive,
+        emailVerified: data.emailVerified,
+        verificationCodeHash: data.verificationCodeHash,
+        verificationCodeExpiresAt: data.verificationCodeExpiresAt,
+        verificationAttempts: data.verificationAttempts,
+        verificationLastSentAt: data.verificationLastSentAt,
+        verificationResendCount: data.verificationResendCount,
         updatedAt: data.updatedAt,
       },
     });

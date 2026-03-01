@@ -34,7 +34,9 @@ apiClient.interceptors.response.use(
       // Las rutas de auth no deben intentar refresh — son las que CREAN la sesión
       const isAuthRoute =
         originalRequest.url?.includes('/auth/login') ||
-        originalRequest.url?.includes('/auth/register');
+        originalRequest.url?.includes('/auth/register') ||
+        originalRequest.url?.includes('/auth/verify-email') ||
+        originalRequest.url?.includes('/auth/resend-verification');
 
       if (isAuthRoute) {
         return Promise.reject(error);

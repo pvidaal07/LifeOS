@@ -13,6 +13,7 @@ import {
   REVIEW_SETTINGS_REPOSITORY,
   PASSWORD_HASHER,
   AUTH_TOKEN,
+  EMAIL_VERIFICATION_SENDER,
 } from '../persistence/injection-tokens';
 
 // Repository implementations
@@ -27,6 +28,7 @@ import {
 import {
   BcryptPasswordHasherService,
   JwtAuthTokenService,
+  EmailVerificationSenderService,
   JwtStrategy,
   JwtRefreshStrategy,
 } from '../auth';
@@ -41,6 +43,8 @@ import { USE_CASE_TOKENS } from '../http/use-case-tokens';
 import {
   RegisterUseCase,
   LoginUseCase,
+  VerifyEmailUseCase,
+  ResendVerificationCodeUseCase,
   RefreshTokensUseCase,
 } from '../../application/use-cases/auth';
 import { GetProfileUseCase } from '../../application/use-cases/users';
@@ -51,6 +55,10 @@ import { UserInitializationService } from '../../domain/user';
 // Application ports (types only — for factory signatures)
 import type { UserRepositoryPort, UserSettingsRepositoryPort, UserModuleRepositoryPort } from '../../application/ports/user-repository.port';
 import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/auth.port';
+import type {
+  EmailVerificationSenderPort,
+  EmailVerificationConfig,
+} from '../../application/ports/email-verification.port';
 
 @Module({
   imports: [
@@ -79,6 +87,7 @@ import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/
     // ── Auth adapter bindings ────────────────────────
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasherService },
     { provide: AUTH_TOKEN, useClass: JwtAuthTokenService },
+    { provide: EMAIL_VERIFICATION_SENDER, useClass: EmailVerificationSenderService },
 
     // ── Passport strategies ──────────────────────────
     JwtStrategy,
@@ -92,22 +101,25 @@ import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/
         userSettingsRepo: UserSettingsRepositoryPort,
         userModuleRepo: UserModuleRepositoryPort,
         passwordHasher: PasswordHasherPort,
-        authToken: AuthTokenPort,
+        verificationSender: EmailVerificationSenderPort,
+        config: ConfigService,
       ) =>
         new RegisterUseCase(
           userRepo,
           userSettingsRepo,
           userModuleRepo,
           passwordHasher,
-          authToken,
           new UserInitializationService(),
+          verificationSender,
+          getEmailVerificationConfig(config),
         ),
       inject: [
         USER_REPOSITORY,
         USER_SETTINGS_REPOSITORY,
         USER_MODULE_REPOSITORY,
         PASSWORD_HASHER,
-        AUTH_TOKEN,
+        EMAIL_VERIFICATION_SENDER,
+        ConfigService,
       ],
     },
     {
@@ -116,8 +128,52 @@ import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/
         userRepo: UserRepositoryPort,
         passwordHasher: PasswordHasherPort,
         authToken: AuthTokenPort,
-      ) => new LoginUseCase(userRepo, passwordHasher, authToken),
-      inject: [USER_REPOSITORY, PASSWORD_HASHER, AUTH_TOKEN],
+        config: ConfigService,
+      ) =>
+        new LoginUseCase(
+          userRepo,
+          passwordHasher,
+          authToken,
+          getEmailVerificationConfig(config),
+        ),
+      inject: [USER_REPOSITORY, PASSWORD_HASHER, AUTH_TOKEN, ConfigService],
+    },
+    {
+      provide: USE_CASE_TOKENS.VerifyEmailUseCase,
+      useFactory: (
+        userRepo: UserRepositoryPort,
+        passwordHasher: PasswordHasherPort,
+        authToken: AuthTokenPort,
+        config: ConfigService,
+      ) =>
+        new VerifyEmailUseCase(
+          userRepo,
+          passwordHasher,
+          authToken,
+          getEmailVerificationConfig(config),
+        ),
+      inject: [USER_REPOSITORY, PASSWORD_HASHER, AUTH_TOKEN, ConfigService],
+    },
+    {
+      provide: USE_CASE_TOKENS.ResendVerificationCodeUseCase,
+      useFactory: (
+        userRepo: UserRepositoryPort,
+        passwordHasher: PasswordHasherPort,
+        verificationSender: EmailVerificationSenderPort,
+        config: ConfigService,
+      ) =>
+        new ResendVerificationCodeUseCase(
+          userRepo,
+          passwordHasher,
+          verificationSender,
+          getEmailVerificationConfig(config),
+        ),
+      inject: [
+        USER_REPOSITORY,
+        PASSWORD_HASHER,
+        EMAIL_VERIFICATION_SENDER,
+        ConfigService,
+      ],
     },
     {
       provide: USE_CASE_TOKENS.RefreshTokensUseCase,
@@ -146,3 +202,12 @@ import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/
   ],
 })
 export class AuthModule {}
+
+function getEmailVerificationConfig(config: ConfigService): EmailVerificationConfig {
+  return {
+    codeLength: config.get<number>('emailVerification.codeLength', 6),
+    expiresInMinutes: config.get<number>('emailVerification.expiresInMinutes', 15),
+    resendCooldownSeconds: config.get<number>('emailVerification.resendCooldownSeconds', 60),
+    maxAttempts: config.get<number>('emailVerification.maxAttempts', 5),
+  };
+}

@@ -1,6 +1,7 @@
 // ── Services (port implementations) ─────────────
 export { BcryptPasswordHasherService } from './services/password-hasher.service';
 export { JwtAuthTokenService } from './services/auth-token.service';
+export { EmailVerificationSenderService } from './services/email-verification-sender.service';
 
 // ── Strategies ──────────────────────────────────
 export { JwtStrategy } from './strategies/jwt.strategy';

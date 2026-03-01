@@ -9,13 +9,47 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
 export interface AuthResponse {
   user: User;
   accessToken: string;
+}
+
+export interface VerificationPendingResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    createdAt: string;
+  };
+  requiresVerification: true;
+  emailMasked: string;
+  cooldownSeconds: number;
+  verificationExpiresAt: string;
+}
+
+export interface VerifyEmailResponse {
+  user: User;
+  accessToken: string;
+}
+
+export interface VerifyEmailPayload {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationPayload {
+  email: string;
+}
+
+export interface PendingVerificationContext {
+  email: string;
+  emailMasked: string;
+  cooldownSeconds: number;
+  verificationExpiresAt: string;
 }
 
 export interface LoginCredentials {
@@ -33,16 +67,31 @@ export interface RegisterData {
 
 export interface UserSettings {
   id: string;
+  userId: string;
   timezone: string;
   theme: string;
   locale: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserModule {
   id: string;
+  userId: string;
   moduleKey: string;
   isActive: boolean;
   displayOrder: number;
+  createdAt: string;
+}
+
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string | null;
+  createdAt: string;
+  settings: UserSettings | null;
+  modules: UserModule[];
 }
 
 // ─── Estudios ────────────────────────────────

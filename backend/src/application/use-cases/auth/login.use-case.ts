@@ -1,6 +1,9 @@
 import { InvalidCredentialsError, AccountDisabledError } from '../../../domain/common';
+import { EmailNotVerifiedError } from '../../../domain/user';
 import { UserRepositoryPort } from '../../ports/user-repository.port';
 import { PasswordHasherPort, AuthTokenPort, TokenPair } from '../../ports/auth.port';
+import { EmailVerificationConfig } from '../../ports/email-verification.port';
+import { maskEmail } from './email-verification.utils';
 
 export interface LoginInput {
   email: string;
@@ -22,6 +25,7 @@ export class LoginUseCase {
     private readonly userRepo: UserRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
     private readonly authToken: AuthTokenPort,
+    private readonly verificationConfig: EmailVerificationConfig,
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -40,6 +44,16 @@ export class LoginUseCase {
     // Check if account is active
     if (!user.isActive) {
       throw new AccountDisabledError();
+    }
+
+    if (!user.emailVerified) {
+      const resendStatus = user.canResendVerificationCode(
+        this.verificationConfig.resendCooldownSeconds,
+      );
+      throw new EmailNotVerifiedError({
+        emailMasked: maskEmail(user.email),
+        cooldownSeconds: resendStatus.remainingSeconds,
+      });
     }
 
     // Generate tokens

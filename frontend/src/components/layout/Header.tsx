@@ -20,6 +20,10 @@ export function Header() {
       return 'Estudios';
     }
 
+    if (location.pathname.startsWith('/account')) {
+      return 'Cuenta';
+    }
+
     return 'Inicio';
   }, [location.pathname]);
 

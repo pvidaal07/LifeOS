@@ -22,6 +22,7 @@ export const USER_MODULE_REPOSITORY = 'UserModuleRepositoryPort';
 // ── Auth adapters ───────────────────────────────
 export const PASSWORD_HASHER = 'PasswordHasherPort';
 export const AUTH_TOKEN = 'AuthTokenPort';
+export const EMAIL_VERIFICATION_SENDER = 'EmailVerificationSenderPort';
 
 // ── Inicio ───────────────────────────────────
 export const DASHBOARD_REPOSITORY = 'DashboardRepositoryPort';

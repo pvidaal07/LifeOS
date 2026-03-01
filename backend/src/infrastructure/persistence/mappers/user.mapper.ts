@@ -10,6 +10,12 @@ export class UserMapper {
       name: prisma.name,
       avatarUrl: prisma.avatarUrl,
       isActive: prisma.isActive,
+      emailVerified: prisma.emailVerified,
+      verificationCodeHash: prisma.verificationCodeHash,
+      verificationCodeExpiresAt: prisma.verificationCodeExpiresAt,
+      verificationAttempts: prisma.verificationAttempts,
+      verificationLastSentAt: prisma.verificationLastSentAt,
+      verificationResendCount: prisma.verificationResendCount,
       createdAt: prisma.createdAt,
       updatedAt: prisma.updatedAt,
     });
@@ -22,6 +28,12 @@ export class UserMapper {
     name: string;
     avatarUrl: string | null;
     isActive: boolean;
+    emailVerified: boolean;
+    verificationCodeHash: string | null;
+    verificationCodeExpiresAt: Date | null;
+    verificationAttempts: number;
+    verificationLastSentAt: Date | null;
+    verificationResendCount: number;
     createdAt: Date;
     updatedAt: Date;
   } {
@@ -32,6 +44,12 @@ export class UserMapper {
       name: domain.name,
       avatarUrl: domain.avatarUrl,
       isActive: domain.isActive,
+      emailVerified: domain.emailVerified,
+      verificationCodeHash: domain.verificationCodeHash,
+      verificationCodeExpiresAt: domain.verificationCodeExpiresAt,
+      verificationAttempts: domain.verificationAttempts,
+      verificationLastSentAt: domain.verificationLastSentAt,
+      verificationResendCount: domain.verificationResendCount,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
     };

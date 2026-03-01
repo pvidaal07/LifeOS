@@ -1,10 +1,13 @@
 import { User } from '../../../domain/user';
 import { UserSettings, UserModule, UserInitializationService } from '../../../domain/user';
-import { ReviewSettings } from '../../../domain/review';
-import { DuplicateEmailError } from '../../../domain/user';
+import { DuplicateEmailError, VerificationDeliveryError } from '../../../domain/user';
 import { UserRepositoryPort, UserSettingsRepositoryPort, UserModuleRepositoryPort } from '../../ports/user-repository.port';
-import { PasswordHasherPort, AuthTokenPort, TokenPair } from '../../ports/auth.port';
-import { ReviewSettingsRepositoryPort } from '../../ports/review-settings-repository.port';
+import { PasswordHasherPort } from '../../ports/auth.port';
+import {
+  EmailVerificationSenderPort,
+  EmailVerificationConfig,
+} from '../../ports/email-verification.port';
+import { generateVerificationCode, maskEmail } from './email-verification.utils';
 
 export interface RegisterInput {
   email: string;
@@ -19,8 +22,10 @@ export interface RegisterOutput {
     name: string;
     createdAt: Date;
   };
-  accessToken: string;
-  refreshToken: string;
+  requiresVerification: true;
+  emailMasked: string;
+  cooldownSeconds: number;
+  verificationExpiresAt: Date;
 }
 
 export class RegisterUseCase {
@@ -29,8 +34,9 @@ export class RegisterUseCase {
     private readonly userSettingsRepo: UserSettingsRepositoryPort,
     private readonly userModuleRepo: UserModuleRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
-    private readonly authToken: AuthTokenPort,
     private readonly userInit: UserInitializationService,
+    private readonly verificationSender: EmailVerificationSenderPort,
+    private readonly verificationConfig: EmailVerificationConfig,
   ) {}
 
   async execute(input: RegisterInput): Promise<RegisterOutput> {
@@ -49,6 +55,17 @@ export class RegisterUseCase {
       email: input.email,
       passwordHash,
       name: input.name,
+    });
+
+    const code = generateVerificationCode(this.verificationConfig.codeLength);
+    const verificationCodeHash = await this.passwordHasher.hash(code);
+    const verificationExpiresAt = new Date(
+      Date.now() + this.verificationConfig.expiresInMinutes * 60 * 1000,
+    );
+    user.setVerificationCode({
+      codeHash: verificationCodeHash,
+      expiresAt: verificationExpiresAt,
+      sentAt: new Date(),
     });
 
     // Persist user
@@ -72,11 +89,16 @@ export class RegisterUseCase {
     );
     await this.userModuleRepo.upsertMany(user.id, modules);
 
-    // Generate tokens
-    const tokens: TokenPair = await this.authToken.generateTokenPair({
-      sub: user.id,
-      email: user.email,
-    });
+    try {
+      await this.verificationSender.sendVerificationCode({
+        toEmail: user.email,
+        name: user.name,
+        code,
+        expiresInMinutes: this.verificationConfig.expiresInMinutes,
+      });
+    } catch {
+      throw new VerificationDeliveryError();
+    }
 
     return {
       user: {
@@ -85,8 +107,10 @@ export class RegisterUseCase {
         name: user.name,
         createdAt: user.createdAt,
       },
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      requiresVerification: true,
+      emailMasked: maskEmail(user.email),
+      cooldownSeconds: this.verificationConfig.resendCooldownSeconds,
+      verificationExpiresAt,
     };
   }
 }

@@ -7,6 +7,7 @@ import {
   Dumbbell,
   UtensilsCrossed,
   ChevronDown,
+  Settings,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -56,6 +57,7 @@ const navigation: NavigationItem[] = [
       { name: 'Repasos', href: '/studies/reviews', icon: RotateCcw },
     ],
   },
+  { type: 'link', name: 'Cuenta', href: '/account/settings', icon: Settings },
   { type: 'disabled', name: 'Deporte', icon: Dumbbell },
   { type: 'disabled', name: 'Nutricion', icon: UtensilsCrossed },
 ];

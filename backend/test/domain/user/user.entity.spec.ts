@@ -105,6 +105,12 @@ describe('User', () => {
         name: 'User',
         avatarUrl: 'https://example.com/avatar.png',
         isActive: true,
+        emailVerified: false,
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+        verificationAttempts: 0,
+        verificationLastSentAt: null,
+        verificationResendCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -209,6 +215,12 @@ describe('User', () => {
         name: 'John',
         avatarUrl: 'https://cdn.example.com/john.jpg',
         isActive: false,
+        emailVerified: false,
+        verificationCodeHash: 'hash',
+        verificationCodeExpiresAt: new Date('2025-02-15'),
+        verificationAttempts: 1,
+        verificationLastSentAt: new Date('2025-02-10'),
+        verificationResendCount: 2,
         createdAt,
         updatedAt,
       });
@@ -277,6 +289,75 @@ describe('User', () => {
       expect(parsed.id).toBe('user-1');
       expect(parsed.email).toBe('a@b.com');
       expect(parsed.name).toBe('A');
+    });
+  });
+
+  describe('email verification behavior', () => {
+    it('should set verification code metadata', () => {
+      const user = User.create({
+        id: 'user-1',
+        email: 'john@example.com',
+        passwordHash: 'hash',
+        name: 'John',
+      });
+
+      const expiresAt = new Date(Date.now() + 60_000);
+      user.setVerificationCode({
+        codeHash: 'verification-hash',
+        expiresAt,
+        sentAt: new Date(),
+      });
+
+      expect(user.verificationCodeHash).toBe('verification-hash');
+      expect(user.verificationCodeExpiresAt).toEqual(expiresAt);
+      expect(user.verificationAttempts).toBe(0);
+      expect(user.emailVerified).toBe(false);
+    });
+
+    it('should increment attempts and verify email', () => {
+      const user = User.create({
+        id: 'user-1',
+        email: 'john@example.com',
+        passwordHash: 'hash',
+        name: 'John',
+      });
+
+      user.incrementVerificationAttempt();
+      expect(user.verificationAttempts).toBe(1);
+
+      user.verifyEmail();
+      expect(user.emailVerified).toBe(true);
+      expect(user.verificationCodeHash).toBeNull();
+      expect(user.verificationCodeExpiresAt).toBeNull();
+      expect(user.verificationAttempts).toBe(0);
+    });
+
+    it('should enforce resend cooldown window', () => {
+      const sentAt = new Date();
+      const user = User.fromPersistence({
+        id: 'user-1',
+        email: 'john@example.com',
+        passwordHash: 'hash',
+        name: 'John',
+        avatarUrl: null,
+        isActive: true,
+        emailVerified: false,
+        verificationCodeHash: 'verification-hash',
+        verificationCodeExpiresAt: new Date(sentAt.getTime() + 10 * 60_000),
+        verificationAttempts: 0,
+        verificationLastSentAt: sentAt,
+        verificationResendCount: 0,
+        createdAt: sentAt,
+        updatedAt: sentAt,
+      });
+
+      const blocked = user.canResendVerificationCode(60, new Date(sentAt.getTime() + 15_000));
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.remainingSeconds).toBeGreaterThan(0);
+
+      const allowed = user.canResendVerificationCode(60, new Date(sentAt.getTime() + 61_000));
+      expect(allowed.allowed).toBe(true);
+      expect(allowed.remainingSeconds).toBe(0);
     });
   });
 });

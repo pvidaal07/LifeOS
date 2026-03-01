@@ -7,6 +7,8 @@ export const USE_CASE_TOKENS = {
   // ── Auth ──────────────────────────────────────
   RegisterUseCase: 'RegisterUseCase',
   LoginUseCase: 'LoginUseCase',
+  VerifyEmailUseCase: 'VerifyEmailUseCase',
+  ResendVerificationCodeUseCase: 'ResendVerificationCodeUseCase',
   RefreshTokensUseCase: 'RefreshTokensUseCase',
 
   // ── Users ─────────────────────────────────────

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ReviewsPage } from './ReviewsPage';
 
@@ -9,7 +10,6 @@ const mockStudiesApi = vi.hoisted(() => ({
   completeReview: vi.fn(),
   skipReview: vi.fn(),
   getReviewSettings: vi.fn(),
-  updateReviewSettings: vi.fn(),
 }));
 
 vi.mock('../../api/studies.api', () => ({
@@ -49,7 +49,12 @@ function renderReviewsPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReviewsPage />
+      <MemoryRouter initialEntries={['/studies/reviews']}>
+        <Routes>
+          <Route path="/studies/reviews" element={<ReviewsPage />} />
+          <Route path="/account/settings" element={<h2>Cuenta y configuracion</h2>} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -61,9 +66,36 @@ function setupMocks(reviews = [MOCK_REVIEW]) {
   mockStudiesApi.getUpcomingReviews.mockResolvedValue({
     data: { data: [] },
   });
+  mockStudiesApi.getReviewSettings.mockResolvedValue({
+    data: {
+      data: {
+        id: 'settings-1',
+        userId: 'user-1',
+        baseIntervals: [1, 7, 30, 90],
+        perfectMultiplier: 2.5,
+        goodMultiplier: 2,
+        regularMultiplier: 1.2,
+        badReset: true,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    },
+  });
 }
 
 describe('Reviews visual status cues', () => {
+  it('shows summary card and account settings handoff for discoverability', async () => {
+    setupMocks();
+    renderReviewsPage();
+
+    expect(await screen.findByText('Configuracion de repasos')).toBeInTheDocument();
+    expect(await screen.findByText(/Preset activo:/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar en Cuenta' }));
+
+    expect(await screen.findByRole('heading', { name: 'Cuenta y configuracion' })).toBeInTheDocument();
+  });
+
   it('shows urgency and result labels as explicit text cues', async () => {
     setupMocks();
     renderReviewsPage();

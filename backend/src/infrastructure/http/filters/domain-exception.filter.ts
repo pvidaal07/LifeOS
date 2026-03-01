@@ -49,13 +49,18 @@ export class DomainExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
+      code: exception.code,
       message: exception.message,
+      details: exception.details,
       timestamp: new Date().toISOString(),
       path: request.url,
     });
   }
 
   private mapToHttpStatus(error: DomainError): HttpStatus {
+    if (error.httpStatus) {
+      return error.httpStatus as HttpStatus;
+    }
     if (error instanceof EntityNotFoundError) {
       return HttpStatus.NOT_FOUND; // 404
     }

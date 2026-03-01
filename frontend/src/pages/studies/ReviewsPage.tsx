@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock, Settings, X, RotateCw } from 'lucide-react';
+import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
+import { detectReviewSettingsPreset, getReviewSettingsPresetLabel } from '../../lib/review-settings-presets';
 import { cn } from '../../lib/utils';
 import type { ReviewSchedule, ReviewSettings, ReviewResult } from '../../types';
 
@@ -62,248 +64,56 @@ function getResultButtonClass(variant: 'success' | 'secondary' | 'warning' | 'da
   return 'border-state-danger/30 bg-state-danger-soft text-state-danger-foreground hover:bg-state-danger-soft/80';
 }
 
-function ReviewSettingsPanel({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
-  const queryClient = useQueryClient();
+function ReviewSettingsSummaryCard() {
+  const navigate = useNavigate();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: reviewSettings, isLoading } = useQuery({
     queryKey: ['review-settings'],
     queryFn: async () => {
-      const res = await studiesApi.getReviewSettings();
-      return res.data.data as ReviewSettings;
+      const response = await studiesApi.getReviewSettings();
+      return response.data.data as ReviewSettings;
     },
   });
 
-  const [formData, setFormData] = useState<{
-    baseIntervals: string;
-    perfectMultiplier: string;
-    goodMultiplier: string;
-    regularMultiplier: string;
-    badReset: boolean;
-  } | null>(null);
+  const presetLabel = reviewSettings
+    ? getReviewSettingsPresetLabel(detectReviewSettingsPreset(reviewSettings))
+    : 'Normal';
 
-  const currentData = formData ?? (settings ? {
-    baseIntervals: settings.baseIntervals.join(', '),
-    perfectMultiplier: String(settings.perfectMultiplier),
-    goodMultiplier: String(settings.goodMultiplier),
-    regularMultiplier: String(settings.regularMultiplier),
-    badReset: settings.badReset,
-  } : null);
-
-  const updateMutation = useMutation({
-    mutationFn: (data: {
-      baseIntervals?: number[];
-      perfectMultiplier?: number;
-      goodMultiplier?: number;
-      regularMultiplier?: number;
-      badReset?: boolean;
-    }) => studiesApi.updateReviewSettings(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['review-settings'] });
-      toast.success('Configuracion guardada');
-      onClose();
-    },
-    onError: () => {
-      toast.error('Error al guardar la configuracion');
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentData) return;
-
-    const intervals = currentData.baseIntervals
-      .split(',')
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n) && n > 0);
-
-    if (intervals.length === 0) {
-      toast.error('Debes indicar al menos un intervalo valido');
-      return;
-    }
-
-    const perfect = parseFloat(currentData.perfectMultiplier);
-    const good = parseFloat(currentData.goodMultiplier);
-    const regular = parseFloat(currentData.regularMultiplier);
-
-    if ([perfect, good, regular].some((n) => isNaN(n) || n < 1)) {
-      toast.error('Los multiplicadores deben ser numeros >= 1');
-      return;
-    }
-
-    updateMutation.mutate({
-      baseIntervals: intervals,
-      perfectMultiplier: perfect,
-      goodMultiplier: good,
-      regularMultiplier: regular,
-      badReset: currentData.badReset,
-    });
-  };
-
-  const handleReset = () => {
-    setFormData({
-      baseIntervals: '1, 7, 30, 90',
-      perfectMultiplier: '2.5',
-      goodMultiplier: '2',
-      regularMultiplier: '1.2',
-      badReset: true,
-    });
-  };
-
-  if (isLoading || !currentData) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-sm text-muted-foreground">Cargando configuracion...</div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const intervalsLabel = reviewSettings?.baseIntervals.join(', ') ?? '1, 7, 30, 90';
 
   return (
-    <Card className="space-y-0">
-      <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-        <div className="flex items-center gap-2">
-          <Settings className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-lg">Configuracion de repasos</CardTitle>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-lg">Configuracion de repasos</CardTitle>
+          </div>
+          <Button
+            variant="secondary"
+            className="h-11"
+            onClick={() => navigate('/account/settings#review-settings')}
+          >
+            Editar en Cuenta
+          </Button>
         </div>
-        <Button
-          onClick={onClose}
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11 text-muted-foreground"
-          aria-label="Cerrar panel de configuracion"
-        >
-          <X className="h-4 w-4" />
-        </Button>
       </CardHeader>
-
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Intervalos base (dias)</label>
-            <Input
-              type="text"
-              value={currentData.baseIntervals}
-              onChange={(e) =>
-                setFormData({ ...currentData, baseIntervals: e.target.value })
-              }
-              className="h-11"
-              placeholder="1, 7, 30, 90"
-            />
-            <p className="text-xs text-muted-foreground">
-              Separados por coma. El primero se usa como intervalo inicial del primer repaso.
+      <CardContent className="space-y-2">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Cargando preferencias de repaso...</p>
+        ) : (
+          <>
+            <p className="text-sm text-text-primary">
+              Preset activo: <span className="font-semibold">{presetLabel}</span>
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Perfecto (x)</label>
-              <Input
-                type="number"
-                step="0.1"
-                min="1"
-                value={currentData.perfectMultiplier}
-                onChange={(e) =>
-                  setFormData({ ...currentData, perfectMultiplier: e.target.value })
-                }
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Bien (x)</label>
-              <Input
-                type="number"
-                step="0.1"
-                min="1"
-                value={currentData.goodMultiplier}
-                onChange={(e) =>
-                  setFormData({ ...currentData, goodMultiplier: e.target.value })
-                }
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Regular (x)</label>
-              <Input
-                type="number"
-                step="0.1"
-                min="1"
-                value={currentData.regularMultiplier}
-                onChange={(e) =>
-                  setFormData({ ...currentData, regularMultiplier: e.target.value })
-                }
-                className="h-11"
-              />
-            </div>
-          </div>
-          <p className="-mt-2 text-xs text-muted-foreground">
-            Al completar un repaso, el intervalo se multiplica por estos valores segun el resultado.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input bg-surface-muted px-3 py-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">Resultado "Mal" reinicia</p>
-              <p className="text-xs text-muted-foreground">
-                {currentData.badReset
-                  ? 'Un mal resultado vuelve al intervalo base (dia 1)'
-                  : 'Un mal resultado reduce el intervalo a la mitad'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                setFormData({ ...currentData, badReset: !currentData.badReset })
-              }
-              className={cn(
-                'relative inline-flex h-11 w-16 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
-                currentData.badReset
-                  ? 'border-primary bg-primary'
-                  : 'border-input bg-surface'
-              )}
-              aria-label={currentData.badReset ? 'Reinicio activado' : 'Reinicio desactivado'}
-            >
-              <span
-                className={cn(
-                  'inline-block h-5 w-5 transform rounded-full bg-surface transition-transform',
-                  currentData.badReset ? 'translate-x-9' : 'translate-x-1'
-                )}
-              />
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={handleReset}
-              variant="ghost"
-              className="h-11 px-0 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <RotateCw className="mr-1.5 h-3.5 w-3.5" />
-              Restaurar valores predeterminados
-            </Button>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <Button
-                type="button"
-                onClick={onClose}
-                variant="secondary"
-                className="h-11"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateMutation.isPending}
-                className="h-11"
-              >
-                {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
-              </Button>
-            </div>
-          </div>
-        </form>
+            <p className="text-xs text-muted-foreground">
+              Intervalos base: {intervalsLabel} dias.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Para editar multiplicadores y reglas avanzadas, usa la seccion de Cuenta.
+            </p>
+          </>
+        )}
       </CardContent>
     </Card>
   );
@@ -312,7 +122,6 @@ function ReviewSettingsPanel({
 export function ReviewsPage() {
   const queryClient = useQueryClient();
   const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const [formState, setFormState] = useState<ReviewFormState>(defaultFormState);
 
   // Reset form when switching to a different review
@@ -442,19 +251,9 @@ export function ReviewsPage() {
             </Badge>
           )}
         </div>
-        <Button
-          onClick={() => setShowSettings(!showSettings)}
-          variant={showSettings ? 'primary' : 'secondary'}
-          className={cn('h-11 px-3 text-sm', !showSettings && 'text-muted-foreground')}
-        >
-          <Settings className="h-4 w-4" />
-          <span className="hidden sm:inline">Configuración</span>
-        </Button>
       </div>
 
-      {showSettings && (
-        <ReviewSettingsPanel onClose={() => setShowSettings(false)} />
-      )}
+      <ReviewSettingsSummaryCard />
 
       {sortedReviews.length === 0 ? (
         <Card>
