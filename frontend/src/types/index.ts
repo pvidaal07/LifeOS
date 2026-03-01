@@ -151,6 +151,30 @@ export interface DashboardData {
   recentActivity: StudySession[];
   topicStats: Record<string, number>;
   upcoming: ReviewSchedule[];
+  weeklyTrend: WeeklyTrendItem[];
+  streak: StreakData;
+  subjectProgress: SubjectProgressItem[];
+}
+
+export interface WeeklyTrendItem {
+  date: string;
+  totalMinutes: number;
+  sessionCount: number;
+}
+
+export interface StreakData {
+  currentStreak: number;
+  studiedToday: boolean;
+}
+
+export interface SubjectProgressItem {
+  subjectId: string;
+  subjectName: string;
+  subjectColor: string;
+  mastered: number;
+  inProgress: number;
+  notStarted: number;
+  total: number;
 }
 
 // ─── API Response wrapper ────────────────────

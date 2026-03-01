@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -6,33 +6,137 @@ import {
   RotateCcw,
   Dumbbell,
   UtensilsCrossed,
+  ChevronDown,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUiStore } from '../../stores/ui.store';
 import logoMark from '../../public/logotipo.png';
 
-type NavigationItem = {
+/* ── Navigation Data Model (discriminated union) ── */
+
+type NavChildItem = {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  moduleKey: string;
-  disabled?: boolean;
 };
 
+type NavLinkItem = {
+  type: 'link';
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type NavSectionItem = {
+  type: 'section';
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  basePath: string;
+  children: NavChildItem[];
+};
+
+type NavDisabledItem = {
+  type: 'disabled';
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type NavigationItem = NavLinkItem | NavSectionItem | NavDisabledItem;
+
 const navigation: NavigationItem[] = [
-  { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard, moduleKey: 'dashboard' },
-  { name: 'Estudios', href: '/studies', icon: BookOpen, moduleKey: 'studies' },
-  { name: 'Repasos', href: '/reviews', icon: RotateCcw, moduleKey: 'studies' },
-  { name: 'Deporte', href: '/sports', icon: Dumbbell, moduleKey: 'sports', disabled: true },
-  { name: 'Nutricion', href: '/nutrition', icon: UtensilsCrossed, moduleKey: 'nutrition', disabled: true },
+  { type: 'link', name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+  {
+    type: 'section',
+    name: 'Estudios',
+    icon: BookOpen,
+    basePath: '/studies',
+    children: [
+      { name: 'Planes de estudio', href: '/studies', icon: BookOpen },
+      { name: 'Repasos', href: '/studies/reviews', icon: RotateCcw },
+    ],
+  },
+  { type: 'disabled', name: 'Deporte', icon: Dumbbell },
+  { type: 'disabled', name: 'Nutricion', icon: UtensilsCrossed },
 ];
+
+/* ── Collapsible Section Component ── */
+
+function SidebarSection({
+  item,
+  onChildClick,
+}: {
+  item: NavSectionItem;
+  onChildClick?: () => void;
+}) {
+  const { pathname } = useLocation();
+  const [isExpanded, setIsExpanded] = useState(() =>
+    pathname.startsWith(item.basePath),
+  );
+
+  // Auto-expand when navigating directly to a child URL
+  useEffect(() => {
+    if (pathname.startsWith(item.basePath)) {
+      setIsExpanded(true);
+    }
+  }, [pathname, item.basePath]);
+
+  return (
+    <div>
+      {/* Section header button */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className={cn(
+          'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200',
+          pathname.startsWith(item.basePath)
+            ? 'text-sidebar-foreground'
+            : 'text-sidebar-muted hover:bg-white/[0.06] hover:text-sidebar-foreground',
+        )}
+        aria-expanded={isExpanded}
+      >
+        <item.icon className="h-4 w-4" />
+        <span>{item.name}</span>
+        <ChevronDown
+          className={cn(
+            'ml-auto h-4 w-4 transition-transform duration-200',
+            isExpanded && 'rotate-180',
+          )}
+        />
+      </button>
+
+      {/* Children links */}
+      {isExpanded && (
+        <div className="mt-0.5 flex flex-col gap-0.5">
+          {item.children.map((child) => (
+            <NavLink
+              key={child.href}
+              to={child.href}
+              end={child.href === item.basePath}
+              onClick={() => onChildClick?.()}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 rounded-lg pl-10 pr-3 py-2 text-sm font-medium transition-colors duration-200',
+                  isActive
+                    ? 'bg-sidebar-active text-sidebar-foreground'
+                    : 'text-sidebar-muted hover:bg-white/[0.06] hover:text-sidebar-foreground',
+                )
+              }
+            >
+              <child.icon className="h-3.5 w-3.5" />
+              <span>{child.name}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Sidebar Content ── */
 
 /** Shared sidebar content used in both desktop and mobile drawer. */
 function SidebarContent({ onClose }: { onClose?: () => void }) {
-  // TODO: Filter modules by user_modules.
-  const visibleModules = navigation;
-
   return (
     <>
       {/* Brand */}
@@ -61,37 +165,53 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.08em] text-sidebar-muted">
           Workspace
         </p>
-        {visibleModules.map((item) => (
-          item.disabled ? (
-            <div
-              key={item.href}
-              aria-disabled="true"
-              className="flex items-center gap-3 rounded-lg border border-dashed border-white/10 px-3 py-2.5 text-sm font-medium text-sidebar-muted/50"
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
-              <span className="ml-auto rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sidebar-muted/60">
-                Soon
-              </span>
-            </div>
-          ) : (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200',
-                  isActive
-                    ? 'bg-sidebar-active text-sidebar-foreground'
-                    : 'text-sidebar-muted hover:bg-white/[0.06] hover:text-sidebar-foreground',
-                )
-              }
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
-            </NavLink>
-          )
-        ))}
+        {navigation.map((item) => {
+          switch (item.type) {
+            case 'disabled':
+              return (
+                <div
+                  key={item.name}
+                  aria-disabled="true"
+                  className="flex items-center gap-3 rounded-lg border border-dashed border-white/10 px-3 py-2.5 text-sm font-medium text-sidebar-muted/50"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                  <span className="ml-auto rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sidebar-muted/60">
+                    Soon
+                  </span>
+                </div>
+              );
+
+            case 'section':
+              return (
+                <SidebarSection
+                  key={item.name}
+                  item={item}
+                  onChildClick={onClose}
+                />
+              );
+
+            case 'link':
+              return (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => onClose?.()}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200',
+                      isActive
+                        ? 'bg-sidebar-active text-sidebar-foreground'
+                        : 'text-sidebar-muted hover:bg-white/[0.06] hover:text-sidebar-foreground',
+                    )
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                </NavLink>
+              );
+          }
+        })}
       </nav>
 
       {/* Footer */}

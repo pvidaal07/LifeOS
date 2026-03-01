@@ -24,7 +24,9 @@ export function AppRoutes() {
           <Route path="/studies" element={<PlansPage />} />
           <Route path="/studies/:planId" element={<PlanDetailPage />} />
           <Route path="/studies/topics/:topicId" element={<TopicDetailPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/studies/reviews" element={<ReviewsPage />} />
+          {/* Redirect old /reviews URL to new location */}
+          <Route path="/reviews" element={<Navigate to="/studies/reviews" replace />} />
         </Route>
       </Route>
 

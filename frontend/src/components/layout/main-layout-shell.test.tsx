@@ -52,9 +52,20 @@ describe('Main layout shell branding', () => {
   it('sidebar content renders navigation links', () => {
     renderLayout();
 
+    // Top-level links and section headers are always visible
     expect(screen.getAllByText('Inicio').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Estudios').length).toBeGreaterThanOrEqual(1);
+
+    // "Estudios" is a collapsible section — starts collapsed on /dashboard
+    expect(screen.queryByText('Repasos')).not.toBeInTheDocument();
+
+    // Expand the section by clicking the header button
+    const sectionButtons = screen.getAllByText('Estudios');
+    fireEvent.click(sectionButtons[0]);
+
+    // After expanding, child links become visible
     expect(screen.getAllByText('Repasos').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Planes de estudio').length).toBeGreaterThanOrEqual(1);
   });
 });
 

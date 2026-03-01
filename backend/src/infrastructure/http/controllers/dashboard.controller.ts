@@ -47,6 +47,9 @@ export class DashboardController {
       upcoming: data.upcomingReviews.map((r) =>
         this.mapUpcomingToApiContract(r),
       ),
+      weeklyTrend: data.weeklyTrend,
+      streak: data.streak,
+      subjectProgress: data.subjectProgress,
     };
   }
 

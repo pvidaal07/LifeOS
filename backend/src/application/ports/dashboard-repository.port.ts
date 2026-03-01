@@ -13,6 +13,9 @@ export interface DashboardData {
   recentActivity: StudySessionWithDetails[];
   topicStats: TopicStats;
   upcomingReviews: UpcomingReview[];
+  weeklyTrend: WeeklyTrendItem[];
+  streak: StreakData;
+  subjectProgress: SubjectProgressItem[];
 }
 
 export interface TopicStats {
@@ -27,4 +30,25 @@ export interface UpcomingReview {
   topicName: string;
   subjectName: string;
   subjectColor: string;
+}
+
+export interface WeeklyTrendItem {
+  date: string;
+  totalMinutes: number;
+  sessionCount: number;
+}
+
+export interface StreakData {
+  currentStreak: number;
+  studiedToday: boolean;
+}
+
+export interface SubjectProgressItem {
+  subjectId: string;
+  subjectName: string;
+  subjectColor: string;
+  mastered: number;
+  inProgress: number;
+  notStarted: number;
+  total: number;
 }

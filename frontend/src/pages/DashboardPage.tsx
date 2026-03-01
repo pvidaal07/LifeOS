@@ -4,6 +4,13 @@ import { Link } from 'react-router-dom';
 import { studiesApi } from '../api/studies.api';
 import { Badge } from '../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import {
+  GreetingWidget,
+  WeeklyTrendChart,
+  StreakWidget,
+  SubjectProgressWidget,
+  UpcomingReviewsWidget,
+} from '../components/dashboard';
 import type { DashboardData } from '../types';
 
 const SUBJECT_COLOR_FALLBACK = 'hsl(var(--color-primary-500))';
@@ -27,20 +34,14 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Titulo */}
-      <div>
-        <h1 className="text-2xl font-bold">Hoy</h1>
-        <p className="text-muted-foreground">
-          Tu resumen del dia - {new Date().toLocaleDateString('es-ES', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          })}
-        </p>
-      </div>
+      {/* Greeting */}
+      <GreetingWidget
+        pendingReviewCount={data?.reviews.count ?? 0}
+        sessionsToday={data?.today.sessionsCompleted ?? 0}
+      />
 
-      {/* Stats rapidos */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats + Streak row */}
+      <div className="grid gap-4 md:grid-cols-5">
         <StatCard
           icon={<AlertTriangle className="h-4 w-4" />}
           label="Repasos pendientes"
@@ -62,61 +63,78 @@ export function DashboardPage() {
           label="Minutos esta semana"
           value={data?.week.totalMinutes ?? 0}
         />
+        <StreakWidget
+          streak={data?.streak ?? { currentStreak: 0, studiedToday: false }}
+        />
       </div>
 
-      {/* Repasos pendientes */}
-      <section>
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-lg">Repasos pendientes</CardTitle>
-            {(data?.reviews.count ?? 0) > 0 && (
-              <Link
-                to="/reviews"
-                className="text-sm font-medium text-primary transition-colors hover:text-brand-primary-700"
-              >
-                Ir a repasos
-              </Link>
-            )}
-          </CardHeader>
-          <CardContent>
-            {data?.reviews.pending.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-surface-muted p-6 text-center text-sm text-muted-foreground">
-                No tienes repasos pendientes. Buen trabajo.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {data?.reviews.pending.map((review) => (
-                  <div
-                    key={review.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 transition-colors hover:bg-surface-muted sm:flex-nowrap"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: review.topic?.subject?.color ?? SUBJECT_COLOR_FALLBACK }}
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{review.topic?.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {review.topic?.subject?.name} - Repaso #{review.reviewNumber}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant={getUrgencyVariant(review.urgencyScore)}
-                      className="shrink-0"
-                    >
-                      Urgencia {getUrgencyLabel(review.urgencyScore)} ({review.urgencyScore.toFixed(1)})
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+      {/* Charts row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <WeeklyTrendChart data={data?.weeklyTrend ?? []} />
+        <SubjectProgressWidget data={data?.subjectProgress ?? []} />
+      </div>
 
-      {/* Actividad reciente */}
+      {/* Two-column: Pending reviews + Upcoming reviews */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Pending reviews */}
+        <section>
+          <Card className="h-full">
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-lg">Repasos pendientes</CardTitle>
+              {(data?.reviews.count ?? 0) > 0 && (
+                <Link
+                  to="/studies/reviews"
+                  className="text-sm font-medium text-primary transition-colors hover:text-brand-primary-700"
+                >
+                  Ir a repasos
+                </Link>
+              )}
+            </CardHeader>
+            <CardContent>
+              {data?.reviews.pending.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+                  No tienes repasos pendientes. Buen trabajo.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {data?.reviews.pending.map((review) => (
+                    <div
+                      key={review.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 transition-colors hover:bg-surface-muted sm:flex-nowrap"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div
+                          className="h-3 w-3 shrink-0 rounded-full"
+                          style={{ backgroundColor: review.topic?.subject?.color ?? SUBJECT_COLOR_FALLBACK }}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{review.topic?.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {review.topic?.subject?.name} - Repaso #{review.reviewNumber}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge
+                        variant={getUrgencyVariant(review.urgencyScore)}
+                        className="shrink-0"
+                      >
+                        Urgencia {getUrgencyLabel(review.urgencyScore)} ({review.urgencyScore.toFixed(1)})
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Upcoming reviews */}
+        <section>
+          <UpcomingReviewsWidget reviews={data?.upcoming ?? []} />
+        </section>
+      </div>
+
+      {/* Recent activity */}
       <section>
         <Card>
           <CardHeader className="pb-4">

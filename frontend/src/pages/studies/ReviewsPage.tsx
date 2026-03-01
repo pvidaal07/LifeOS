@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RotateCcw, SkipForward, RefreshCw, Calendar, Clock, Settings, X, RotateCw } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -9,6 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Input } from '../../components/ui/Input';
 import { cn } from '../../lib/utils';
 import type { ReviewSchedule, ReviewSettings, ReviewResult } from '../../types';
+
+// --- Review completion form state ---
+
+interface ReviewFormState {
+  durationMinutes: string;
+  qualityRating: number | null;
+  notes: string;
+}
+
+const defaultFormState: ReviewFormState = {
+  durationMinutes: '',
+  qualityRating: null,
+  notes: '',
+};
 
 const SUBJECT_COLOR_FALLBACK = 'hsl(var(--color-primary-500))';
 
@@ -299,6 +313,12 @@ export function ReviewsPage() {
   const queryClient = useQueryClient();
   const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [formState, setFormState] = useState<ReviewFormState>(defaultFormState);
+
+  // Reset form when switching to a different review
+  useEffect(() => {
+    setFormState(defaultFormState);
+  }, [expandedReviewId]);
 
   const { data: reviews, isLoading, isError, refetch } = useQuery({
     queryKey: ['pending-reviews'],
@@ -317,8 +337,19 @@ export function ReviewsPage() {
   });
 
   const completeReviewMutation = useMutation({
-    mutationFn: ({ id, result }: { id: string; result: ReviewResult }) =>
-      studiesApi.completeReview(id, { result }),
+    mutationFn: ({ id, result, durationMinutes, qualityRating, notes }: {
+      id: string;
+      result: ReviewResult;
+      durationMinutes: number;
+      qualityRating?: number;
+      notes?: string;
+    }) =>
+      studiesApi.completeReview(id, {
+        result,
+        durationMinutes,
+        ...(qualityRating != null && { qualityRating }),
+        ...(notes != null && notes.trim() !== '' && { notes: notes.trim() }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['upcoming-reviews'] });
@@ -345,6 +376,22 @@ export function ReviewsPage() {
   });
 
   const isMutating = completeReviewMutation.isPending || skipReviewMutation.isPending;
+
+  const handleCompleteReview = (reviewId: string, result: ReviewResult) => {
+    const parsed = parseInt(formState.durationMinutes, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      toast.error('Ingresa la duración en minutos (mínimo 1)');
+      return;
+    }
+
+    completeReviewMutation.mutate({
+      id: reviewId,
+      result,
+      durationMinutes: parsed,
+      ...(formState.qualityRating != null && { qualityRating: formState.qualityRating }),
+      ...(formState.notes.trim() !== '' && { notes: formState.notes.trim() }),
+    });
+  };
 
   if (isLoading) {
     return (
@@ -483,17 +530,79 @@ export function ReviewsPage() {
 
                 {expandedReviewId === review.id && (
                   <div className="mt-3 border-t border-border pt-3">
-                    <p className="mb-2 text-xs text-muted-foreground">¿Cómo fue el repaso?</p>
+                    <p className="mb-3 text-xs text-muted-foreground">¿Cómo fue el repaso?</p>
+
+                    {/* Duration + Quality Rating row */}
+                    <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {/* Duration input (required) */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-text-primary">
+                          Duración (min) <span className="text-state-danger">*</span>
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Ej: 15"
+                          value={formState.durationMinutes}
+                          onChange={(e) =>
+                            setFormState((prev) => ({ ...prev, durationMinutes: e.target.value }))
+                          }
+                          className="h-11"
+                          aria-label="Duración en minutos"
+                        />
+                      </div>
+
+                      {/* Quality rating (optional, 1-5 buttons) */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-text-primary">Calidad</label>
+                        <div className="flex gap-1.5">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() =>
+                                setFormState((prev) => ({
+                                  ...prev,
+                                  qualityRating: prev.qualityRating === n ? null : n,
+                                }))
+                              }
+                              className={cn(
+                                'flex h-11 w-11 items-center justify-center rounded-lg border text-sm font-medium transition-colors',
+                                formState.qualityRating === n
+                                  ? 'border-primary bg-primary text-white'
+                                  : 'border-input bg-surface-muted text-muted-foreground hover:bg-surface-muted/80'
+                              )}
+                              aria-label={`Calidad ${n}`}
+                              aria-pressed={formState.qualityRating === n}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notes textarea (optional) */}
+                    <div className="mb-3 space-y-1.5">
+                      <label className="text-xs font-medium text-text-primary">Notas</label>
+                      <textarea
+                        placeholder="Observaciones sobre el repaso..."
+                        value={formState.notes}
+                        onChange={(e) =>
+                          setFormState((prev) => ({ ...prev, notes: e.target.value }))
+                        }
+                        rows={2}
+                        className="flex w-full rounded-lg border border-input bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Notas del repaso"
+                      />
+                    </div>
+
+                    {/* Result buttons */}
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {resultButtons.map(({ result, label, variant }) => (
                         <button
                           key={result}
-                          onClick={() =>
-                            completeReviewMutation.mutate({
-                              id: review.id,
-                              result,
-                            })
-                          }
+                          onClick={() => handleCompleteReview(review.id, result)}
                           disabled={isMutating}
                           className={cn(
                             'h-11 rounded-lg border px-3 text-xs font-medium transition-colors disabled:opacity-50',

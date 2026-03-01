@@ -409,7 +409,7 @@ export function TopicDetailPage() {
                 </p>
                 {isPast && (
                   <Link
-                    to="/reviews"
+                    to="/studies/reviews"
                     className="mt-2 inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-brand-primary-700"
                   >
                     <RotateCcw className="h-3 w-3" />
@@ -500,7 +500,7 @@ export function TopicDetailPage() {
           <h2 className="text-lg font-semibold">Historial de repasos</h2>
           {((topic as any).reviewSchedules ?? []).some((r: any) => r.status === 'pending') && (
             <Link
-              to="/reviews"
+              to="/studies/reviews"
               className="flex items-center gap-1 text-sm text-primary transition-colors hover:text-brand-primary-700"
             >
               <RotateCcw className="h-3.5 w-3.5" />

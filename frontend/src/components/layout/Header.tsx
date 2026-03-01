@@ -12,12 +12,12 @@ export function Header() {
   const toggleDrawer = useUiStore((state) => state.toggleDrawer);
   const { mutate: logout } = useLogout();
   const sectionTitle = useMemo(() => {
-    if (location.pathname.startsWith('/studies')) {
-      return 'Estudios';
+    if (location.pathname.startsWith('/studies/reviews')) {
+      return 'Repasos';
     }
 
-    if (location.pathname.startsWith('/reviews')) {
-      return 'Repasos';
+    if (location.pathname.startsWith('/studies')) {
+      return 'Estudios';
     }
 
     return 'Inicio';
