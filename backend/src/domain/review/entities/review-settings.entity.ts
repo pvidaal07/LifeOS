@@ -73,6 +73,21 @@ export class ReviewSettings extends Entity {
     });
   }
 
+  update(params: {
+    baseIntervals?: number[];
+    perfectMultiplier?: number;
+    goodMultiplier?: number;
+    regularMultiplier?: number;
+    badReset?: boolean;
+  }): void {
+    if (params.baseIntervals !== undefined) this._baseIntervals = [...params.baseIntervals];
+    if (params.perfectMultiplier !== undefined) this._perfectMultiplier = params.perfectMultiplier;
+    if (params.goodMultiplier !== undefined) this._goodMultiplier = params.goodMultiplier;
+    if (params.regularMultiplier !== undefined) this._regularMultiplier = params.regularMultiplier;
+    if (params.badReset !== undefined) this._badReset = params.badReset;
+    this._updatedAt = new Date();
+  }
+
   getMultiplierForResult(result: string): number {
     switch (result) {
       case 'perfect':

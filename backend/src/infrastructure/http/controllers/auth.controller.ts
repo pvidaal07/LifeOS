@@ -14,10 +14,19 @@ import { Response } from 'express';
 import { USE_CASE_TOKENS } from '../use-case-tokens';
 import { RegisterUseCase } from '../../../application/use-cases/auth';
 import { LoginUseCase } from '../../../application/use-cases/auth';
+import { VerifyEmailUseCase } from '../../../application/use-cases/auth';
+import { ResendVerificationCodeUseCase } from '../../../application/use-cases/auth';
 import { RefreshTokensUseCase } from '../../../application/use-cases/auth';
+import { ChangePasswordUseCase } from '../../../application/use-cases/auth';
 import { GetProfileUseCase } from '../../../application/use-cases/users';
 import { JwtAuthGuard, JwtRefreshAuthGuard, CurrentUser } from '../../auth';
-import { RegisterDto, LoginDto } from '../dto/auth';
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+  ChangePasswordDto,
+} from '../dto/auth';
 import { UsersController } from './users.controller';
 
 @ApiTags('Auth')
@@ -28,8 +37,14 @@ export class AuthController {
     private readonly registerUseCase: RegisterUseCase,
     @Inject(USE_CASE_TOKENS.LoginUseCase)
     private readonly loginUseCase: LoginUseCase,
+    @Inject(USE_CASE_TOKENS.VerifyEmailUseCase)
+    private readonly verifyEmailUseCase: VerifyEmailUseCase,
+    @Inject(USE_CASE_TOKENS.ResendVerificationCodeUseCase)
+    private readonly resendVerificationCodeUseCase: ResendVerificationCodeUseCase,
     @Inject(USE_CASE_TOKENS.RefreshTokensUseCase)
     private readonly refreshTokensUseCase: RefreshTokensUseCase,
+    @Inject(USE_CASE_TOKENS.ChangePasswordUseCase)
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
     @Inject(USE_CASE_TOKENS.GetProfileUseCase)
     private readonly getProfileUseCase: GetProfileUseCase,
   ) {}
@@ -46,12 +61,7 @@ export class AuthController {
       name: dto.name,
     });
 
-    this.setRefreshTokenCookie(res, result.refreshToken);
-
-    return {
-      user: result.user,
-      accessToken: result.accessToken,
-    };
+    return result;
   }
 
   @Post('login')
@@ -74,6 +84,35 @@ export class AuthController {
     };
   }
 
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verificar email con codigo' })
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.verifyEmailUseCase.execute({
+      email: dto.email,
+      code: dto.code,
+    });
+
+    this.setRefreshTokenCookie(res, result.refreshToken);
+
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reenviar codigo de verificacion' })
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.resendVerificationCodeUseCase.execute({
+      email: dto.email,
+    });
+  }
+
   @Post('refresh')
   @UseGuards(JwtRefreshAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -94,6 +133,22 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('refresh_token');
     return { message: 'Sesión cerrada correctamente' };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
+  async changePassword(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.changePasswordUseCase.execute({
+      userId,
+      currentPassword: dto.currentPassword,
+      newPassword: dto.newPassword,
+    });
   }
 
   @Get('profile')

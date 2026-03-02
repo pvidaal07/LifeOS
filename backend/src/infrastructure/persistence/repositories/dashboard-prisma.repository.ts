@@ -7,7 +7,14 @@ import {
   DashboardData,
   TopicStats,
   UpcomingReview,
+  WeeklyTrendItem,
+  StreakData,
+  SubjectProgressItem,
 } from '../../../application/ports/dashboard-repository.port';
+import {
+  getWeeklyTrendUtcWindow,
+  toUtcDayKey,
+} from './dashboard-weekly-trend.utils';
 
 @Injectable()
 export class DashboardPrismaRepository implements DashboardRepositoryPort {
@@ -26,6 +33,9 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
 
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+    const now = new Date();
+    const { startUtc, endExclusiveUtc } = getWeeklyTrendUtcWindow(now);
+
     const [
       pendingReviewsRaw,
       todaySessionsCount,
@@ -33,6 +43,9 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
       recentSessionsRaw,
       topicStatsRaw,
       upcomingReviewsRaw,
+      weeklyTrendRaw,
+      streakDatesRaw,
+      subjectProgressRaw,
     ] = await Promise.all([
       // Pending reviews (today + overdue)
       this.prisma.reviewSchedule.findMany({
@@ -122,6 +135,47 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
         orderBy: { scheduledDate: 'asc' },
         take: 10,
       }),
+
+      // Weekly trend: daily minutes for last 7 days
+      this.prisma.$queryRaw<
+        Array<{ day_key: string; total_minutes: bigint; session_count: bigint }>
+      >`
+        SELECT to_char(studied_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') as day_key,
+               COALESCE(SUM(duration_minutes), 0) as total_minutes,
+               COUNT(*)::bigint as session_count
+        FROM study_sessions
+        WHERE user_id = ${userId}
+          AND studied_at >= ${startUtc}
+          AND studied_at < ${endExclusiveUtc}
+        GROUP BY day_key
+        ORDER BY day_key ASC
+      `,
+
+      // Streak: distinct study dates, walking backward
+      this.prisma.$queryRaw<
+        Array<{ study_date: Date }>
+      >`
+        SELECT DISTINCT DATE(studied_at) as study_date
+        FROM study_sessions
+        WHERE user_id = ${userId}
+        ORDER BY study_date DESC
+        LIMIT 365
+      `,
+
+      // Subject progress: topic counts by status per subject
+      this.prisma.subject.findMany({
+        where: {
+          studyPlan: { userId },
+        },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          topics: {
+            select: { status: true },
+          },
+        },
+      }),
     ]);
 
     // Map pending reviews to domain + read-model
@@ -162,6 +216,15 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
       subjectColor: r.topic.subject.color,
     }));
 
+    // Build weekly trend with gap-filling for missing days
+    const weeklyTrend = this.buildWeeklyTrend(weeklyTrendRaw, startUtc);
+
+    // Compute streak from distinct study dates
+    const streak = this.computeStreak(streakDatesRaw);
+
+    // Compute subject progress
+    const subjectProgress = this.computeSubjectProgress(subjectProgressRaw);
+
     return {
       pendingReviews,
       pendingReviewCount: pendingReviews.length,
@@ -173,6 +236,113 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
       recentActivity,
       topicStats,
       upcomingReviews,
+      weeklyTrend,
+      streak,
+      subjectProgress,
     };
+  }
+
+  /**
+   * Fill in missing days with zeros to ensure exactly 7 entries.
+   */
+  private buildWeeklyTrend(
+    rawData: Array<{
+      day_key: string;
+      total_minutes: bigint;
+      session_count: bigint;
+    }>,
+    startDate: Date,
+  ): WeeklyTrendItem[] {
+    const dateMap = new Map<string, { totalMinutes: number; sessionCount: number }>();
+    for (const row of rawData) {
+      dateMap.set(row.day_key, {
+        totalMinutes: Number(row.total_minutes),
+        sessionCount: Number(row.session_count),
+      });
+    }
+
+    const result: WeeklyTrendItem[] = [];
+    for (let i = 0; i < 7; i++) {
+      const dateStr = toUtcDayKey(
+        new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000),
+      );
+      const entry = dateMap.get(dateStr);
+      result.push({
+        date: dateStr,
+        totalMinutes: entry?.totalMinutes ?? 0,
+        sessionCount: entry?.sessionCount ?? 0,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Walk backward from today counting consecutive study days.
+   */
+  private computeStreak(
+    rawDates: Array<{ study_date: Date }>,
+  ): StreakData {
+    if (rawDates.length === 0) {
+      return { currentStreak: 0, studiedToday: false };
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const studyDateStrings = rawDates.map(
+      (r) => new Date(r.study_date).toISOString().split('T')[0],
+    );
+
+    const studiedToday = studyDateStrings.includes(todayStr);
+
+    // Start counting from today (if studied) or yesterday
+    let currentStreak = 0;
+    const checkDate = new Date();
+    if (!studiedToday) {
+      // If not studied today, start checking from yesterday
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    const dateSet = new Set(studyDateStrings);
+
+    for (let i = 0; i < 365; i++) {
+      const checkStr = checkDate.toISOString().split('T')[0];
+      if (dateSet.has(checkStr)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return { currentStreak, studiedToday };
+  }
+
+  /**
+   * Aggregate topic statuses per subject, filter out subjects with no topics.
+   */
+  private computeSubjectProgress(
+    subjects: Array<{
+      id: string;
+      name: string;
+      color: string;
+      topics: Array<{ status: string }>;
+    }>,
+  ): SubjectProgressItem[] {
+    return subjects
+      .filter((s) => s.topics.length > 0)
+      .map((s) => {
+        const mastered = s.topics.filter((t) => t.status === 'mastered').length;
+        const inProgress = s.topics.filter((t) => t.status === 'in_progress').length;
+        const notStarted = s.topics.filter((t) => t.status === 'not_started').length;
+        return {
+          subjectId: s.id,
+          subjectName: s.name,
+          subjectColor: s.color,
+          mastered,
+          inProgress,
+          notStarted,
+          total: s.topics.length,
+        };
+      });
   }
 }

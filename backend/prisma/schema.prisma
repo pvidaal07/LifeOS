@@ -22,6 +22,12 @@ model User {
   name         String
   avatarUrl    String?  @map("avatar_url")
   isActive     Boolean  @default(true) @map("is_active")
+  emailVerified Boolean @default(false) @map("email_verified")
+  verificationCodeHash String? @map("verification_code_hash")
+  verificationCodeExpiresAt DateTime? @map("verification_code_expires_at") @db.Timestamptz(3)
+  verificationAttempts Int @default(0) @map("verification_attempts")
+  verificationLastSentAt DateTime? @map("verification_last_sent_at") @db.Timestamptz(3)
+  verificationResendCount Int @default(0) @map("verification_resend_count")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

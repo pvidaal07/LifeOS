@@ -14,6 +14,11 @@ export class TopicStatus extends ValueObject<TopicStatusValue> {
   static readonly MASTERED = new TopicStatus('mastered');
 
   static create(value: string): TopicStatus {
+    if (!VALID_STATUSES.includes(value as TopicStatusValue)) {
+      throw new Error(
+        `Estado de topic inválido: '${value}'. Valores permitidos: ${VALID_STATUSES.join(', ')}`,
+      );
+    }
     return new TopicStatus(value as TopicStatusValue);
   }
 

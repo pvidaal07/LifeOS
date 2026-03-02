@@ -7,7 +7,10 @@ export const USE_CASE_TOKENS = {
   // ── Auth ──────────────────────────────────────
   RegisterUseCase: 'RegisterUseCase',
   LoginUseCase: 'LoginUseCase',
+  VerifyEmailUseCase: 'VerifyEmailUseCase',
+  ResendVerificationCodeUseCase: 'ResendVerificationCodeUseCase',
   RefreshTokensUseCase: 'RefreshTokensUseCase',
+  ChangePasswordUseCase: 'ChangePasswordUseCase',
 
   // ── Users ─────────────────────────────────────
   GetProfileUseCase: 'GetProfileUseCase',
@@ -44,10 +47,13 @@ export const USE_CASE_TOKENS = {
 
   // ── Reviews ───────────────────────────────────
   GetPendingReviewsUseCase: 'GetPendingReviewsUseCase',
+  GetUpcomingReviewsUseCase: 'GetUpcomingReviewsUseCase',
   CompleteReviewUseCase: 'CompleteReviewUseCase',
   SkipReviewUseCase: 'SkipReviewUseCase',
   RecalculateUrgencyUseCase: 'RecalculateUrgencyUseCase',
+  GetReviewSettingsUseCase: 'GetReviewSettingsUseCase',
+  UpdateReviewSettingsUseCase: 'UpdateReviewSettingsUseCase',
 
-  // ── Dashboard ─────────────────────────────────
+  // ── Inicio ─────────────────────────────────
   GetDashboardUseCase: 'GetDashboardUseCase',
 } as const;

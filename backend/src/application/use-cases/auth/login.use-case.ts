@@ -1,6 +1,11 @@
 import { InvalidCredentialsError, AccountDisabledError } from '../../../domain/common';
+import { EmailNotVerifiedError } from '../../../domain/user';
 import { UserRepositoryPort } from '../../ports/user-repository.port';
 import { PasswordHasherPort, AuthTokenPort, TokenPair } from '../../ports/auth.port';
+import { EmailVerificationConfig } from '../../ports/email-verification.port';
+import type { ClockPort } from '../../ports/clock.port';
+import { maskEmail } from './email-verification.utils';
+import { IssueVerificationCodeService } from './issue-verification-code.service';
 
 export interface LoginInput {
   email: string;
@@ -22,6 +27,9 @@ export class LoginUseCase {
     private readonly userRepo: UserRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
     private readonly authToken: AuthTokenPort,
+    private readonly issueVerificationCode: IssueVerificationCodeService,
+    private readonly verificationConfig: EmailVerificationConfig,
+    private readonly clock: ClockPort,
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -40,6 +48,31 @@ export class LoginUseCase {
     // Check if account is active
     if (!user.isActive) {
       throw new AccountDisabledError();
+    }
+
+    if (!user.emailVerified) {
+      const now = this.clock.now();
+      const resendStatus = user.canResendVerificationCode(
+        this.verificationConfig.resendCooldownSeconds,
+        now,
+      );
+
+      let cooldownSeconds = resendStatus.remainingSeconds;
+      if (resendStatus.allowed) {
+        const issuance = await this.issueVerificationCode.execute({
+          user,
+          mode: 'best-effort',
+          persistVerificationState: async () => {
+            await this.userRepo.update(user);
+          },
+        });
+        cooldownSeconds = issuance.cooldownSeconds;
+      }
+
+      throw new EmailNotVerifiedError({
+        emailMasked: maskEmail(user.email),
+        cooldownSeconds,
+      });
     }
 
     // Generate tokens

@@ -5,6 +5,8 @@ import type {
   Topic,
   StudySession,
   ReviewSchedule,
+  ReviewSettings,
+  CompleteReviewResponse,
   DashboardData,
   ApiResponse,
   ReviewResult,
@@ -76,16 +78,31 @@ export const studiesApi = {
   getPendingReviews: () =>
     apiClient.get<ApiResponse<ReviewSchedule[]>>('/studies/reviews/pending'),
 
+  getUpcomingReviews: () =>
+    apiClient.get<ApiResponse<ReviewSchedule[]>>('/studies/reviews/upcoming'),
+
   completeReview: (id: string, data: {
     result: ReviewResult;
     durationMinutes?: number;
     qualityRating?: number;
     notes?: string;
   }) =>
-    apiClient.post<ApiResponse<unknown>>(`/studies/reviews/${id}/complete`, data),
+    apiClient.post<ApiResponse<CompleteReviewResponse>>(`/studies/reviews/${id}/complete`, data),
 
   skipReview: (id: string) =>
-    apiClient.post<ApiResponse<unknown>>(`/studies/reviews/${id}/skip`),
+    apiClient.post<ApiResponse<ReviewSchedule>>(`/studies/reviews/${id}/skip`),
+
+  getReviewSettings: () =>
+    apiClient.get<ApiResponse<ReviewSettings>>('/studies/reviews/settings'),
+
+  updateReviewSettings: (data: {
+    baseIntervals?: number[];
+    perfectMultiplier?: number;
+    goodMultiplier?: number;
+    regularMultiplier?: number;
+    badReset?: boolean;
+  }) =>
+    apiClient.patch<ApiResponse<ReviewSettings>>('/studies/reviews/settings', data),
 
   // ─── Dashboard ─────────────────────────────
   getDashboard: () =>

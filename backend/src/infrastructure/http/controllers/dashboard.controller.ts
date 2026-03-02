@@ -7,7 +7,7 @@ import { ReviewScheduleWithTopic } from '../../../application/ports/review-repos
 import { StudySessionWithDetails } from '../../../application/ports/session-repository.port';
 import { UpcomingReview } from '../../../application/ports/dashboard-repository.port';
 
-@ApiTags('Dashboard')
+@ApiTags('Inicio')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('dashboard')
@@ -47,6 +47,9 @@ export class DashboardController {
       upcoming: data.upcomingReviews.map((r) =>
         this.mapUpcomingToApiContract(r),
       ),
+      weeklyTrend: data.weeklyTrend,
+      streak: data.streak,
+      subjectProgress: data.subjectProgress,
     };
   }
 

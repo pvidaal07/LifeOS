@@ -19,7 +19,7 @@ export * from './use-cases/auth';
 // Use Cases - Users
 export * from './use-cases/users';
 
-// Use Cases - Dashboard
+// Use Cases - Inicio
 export * from './use-cases/dashboard';
 
 // Use Cases - Reviews

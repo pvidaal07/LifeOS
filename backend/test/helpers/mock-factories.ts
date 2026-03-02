@@ -38,7 +38,9 @@ export function createMockReviewRepository(): {
 } {
   return {
     findPendingByUserId: vi.fn(),
+    findUpcomingByUserId: vi.fn(),
     findPendingById: vi.fn(),
+    findPendingByTopicId: vi.fn(),
     findCompletedByTopicId: vi.fn(),
     findAllPendingByUserId: vi.fn(),
     save: vi.fn(),
@@ -54,6 +56,7 @@ export function createMockReviewSettingsRepository(): {
 } {
   return {
     findByUserId: vi.fn(),
+    upsert: vi.fn(),
   };
 }
 

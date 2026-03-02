@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRegister } from '../hooks/useAuth';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import bannerImage from '../public/banner.png';
+import logoIcon from '../public/logotipo.png';
 
 export function RegisterPage() {
   const { mutate: register, isPending } = useRegister();
@@ -12,78 +16,94 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">
-            L
-          </div>
-          <h1 className="mt-4 text-2xl font-bold">Crear cuenta</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Empieza a organizar tu vida
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      <img
+        src={bannerImage}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="auth-banner-scrim absolute inset-0" />
+
+      <div className="auth-card relative mx-4 w-full max-w-[460px] sm:mx-6">
+        {/* Brand mark */}
+        <div className="flex items-center justify-center gap-2.5">
+          <img src={logoIcon} alt="LifeOS mark" className="h-14 w-14 sm:h-16 sm:w-16" />
+          <span className="text-xl font-semibold text-slate-800">LifeOS</span>
+        </div>
+
+        {/* Title + subtitle */}
+        <div className="mt-5 text-center">
+          <h1 className="text-[28px] font-bold leading-tight text-slate-800 sm:text-[32px]">
+            Crear cuenta
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-500">
+            Comienza a organizar tu progreso personal
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">
+        <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="name" className="text-sm font-medium text-slate-700">
               Nombre
             </label>
-            <input
+            <Input
               id="name"
               type="text"
               required
+              autoComplete="name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Tu nombre"
+              placeholder="Your name"
+              disabled={isPending}
             />
           </div>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
-              Email
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+              Correo electrónico
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               required
+              autoComplete="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="tu@email.com"
+              disabled={isPending}
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-sm font-medium text-slate-700">
               Contraseña
             </label>
-            <input
+            <Input
               id="password"
               type="password"
               required
               minLength={8}
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="Mínimo 8 caracteres"
+              disabled={isPending}
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
+          <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Creando cuenta...' : 'Crear cuenta'}
-          </button>
+          </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-primary hover:underline font-medium">
-            Inicia sesión
+        <p className="mt-6 text-center text-sm text-slate-500">
+          ¿Ya tienes una cuenta?{' '}
+          <Link
+            to="/login"
+            className="font-medium text-[hsl(221,83%,53%)] transition-colors hover:text-[hsl(224,64%,33%)] hover:underline"
+          >
+            Iniciar sesión
           </Link>
         </p>
       </div>

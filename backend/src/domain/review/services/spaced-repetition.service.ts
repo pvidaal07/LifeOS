@@ -78,11 +78,19 @@ export class SpacedRepetitionService {
   /**
    * Calculate system mastery level for a topic based on its completed reviews.
    *
-   * Formula:
-   * - successRatio = successfulReviews / totalReviews
-   * - intervalFactor = log2(lastReview.intervalDays + 1) / 3
-   * - mastery = min(10, successRatio * 10 * intervalFactor)
-   * - Rounded to 1 decimal place
+   * Formula (weighted approach):
+   * - reviewCountFactor: min(1, completedReviews / 5) — rewards consistency, caps at 5 reviews
+   * - successRatio: successfulReviews / totalReviews — rewards quality (perfect/good)
+   * - intervalFactor: min(1, log2(lastInterval + 1) / log2(31)) — rewards long intervals, caps at 30 days
+   * - recentBonus: latest 3 reviews weighted heavier (if all successful, +1 bonus)
+   *
+   * mastery = min(10, (reviewCountFactor * 3 + successRatio * 3 + intervalFactor * 3 + recentBonus))
+   *
+   * This gives a more gradual progression:
+   * - 1 perfect review: ~3.3 (visible progress from the start)
+   * - 2 perfect reviews: ~5.2
+   * - 3 perfect reviews: ~7.5
+   * - 4+ perfect reviews with growing intervals: 8-10 (mastered)
    *
    * Returns 0 if no completed reviews.
    */
@@ -94,12 +102,24 @@ export class SpacedRepetitionService {
       (r) => r.result.isSuccessful,
     ).length;
 
+    // Factor 1: Consistency — how many reviews have been completed (caps at 5)
+    const reviewCountFactor = Math.min(1, totalReviews / 5);
+
+    // Factor 2: Quality — ratio of successful results (perfect/good)
+    const successRatio = successfulReviews / totalReviews;
+
+    // Factor 3: Interval growth — rewards long intervals (caps at 30-day interval)
     const lastReview = completedReviews[completedReviews.length - 1];
-    const intervalFactor = Math.log2(lastReview.intervalDays + 1) / 3;
+    const intervalFactor = Math.min(1, Math.log2(lastReview.intervalDays + 1) / Math.log2(31));
+
+    // Factor 4: Recent performance bonus — last 3 reviews
+    const recentReviews = completedReviews.slice(-3);
+    const recentSuccessful = recentReviews.filter((r) => r.result.isSuccessful).length;
+    const recentBonus = recentSuccessful === recentReviews.length ? 1 : 0;
 
     const mastery = Math.min(
       10,
-      (successfulReviews / totalReviews) * 10 * intervalFactor,
+      reviewCountFactor * 3 + successRatio * 3 + intervalFactor * 3 + recentBonus,
     );
 
     return Math.round(mastery * 10) / 10;
@@ -107,10 +127,14 @@ export class SpacedRepetitionService {
 
   /**
    * Determine the topic status based on system mastery level.
-   * mastery >= 8 → 'mastered', otherwise → 'in_progress'
+   * mastery >= 7 → 'mastered', otherwise → 'in_progress'
+   *
+   * Threshold lowered from 8 to 7 to match the weighted mastery formula:
+   * - 7+ is achievable after ~3-4 consistently successful reviews
+   * - This makes the "mastered" status a realistic goal
    */
   determineTopicStatus(systemMastery: number): 'mastered' | 'in_progress' {
-    return systemMastery >= 8 ? 'mastered' : 'in_progress';
+    return systemMastery >= 7 ? 'mastered' : 'in_progress';
   }
 
   /**

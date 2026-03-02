@@ -289,7 +289,7 @@ describe('SpacedRepetitionService', () => {
       expect(mastery).toBe(0);
     });
 
-    it('should calculate mastery based on success ratio and interval factor', () => {
+    it('should calculate mastery based on weighted formula with 4 factors', () => {
       const reviews: CompletedReviewData[] = [
         {
           result: ReviewResult.PERFECT,
@@ -310,10 +310,12 @@ describe('SpacedRepetitionService', () => {
 
       const mastery = service.calculateSystemMastery(reviews);
 
-      // successRatio = 3/3 = 1.0 (all perfect/good are successful)
-      // intervalFactor = log2(30 + 1) / 3 = log2(31) / 3 ≈ 4.954 / 3 ≈ 1.651
-      // mastery = min(10, 1.0 * 10 * 1.651) = min(10, 16.51) = 10
-      expect(mastery).toBe(10);
+      // reviewCountFactor = min(1, 3/5) = 0.6
+      // successRatio = 3/3 = 1.0
+      // intervalFactor = min(1, log2(31)/log2(31)) = 1.0
+      // recentBonus = all 3 successful → 1
+      // mastery = min(10, 0.6*3 + 1.0*3 + 1.0*3 + 1) = 8.8
+      expect(mastery).toBe(8.8);
     });
 
     it('should factor in unsuccessful reviews to lower mastery', () => {
@@ -337,13 +339,15 @@ describe('SpacedRepetitionService', () => {
 
       const mastery = service.calculateSystemMastery(reviews);
 
-      // successRatio = 1/3
-      // intervalFactor = log2(7 + 1) / 3 = log2(8) / 3 = 3/3 = 1.0
-      // mastery = min(10, (1/3) * 10 * 1.0) = min(10, 3.33) = 3.3
-      expect(mastery).toBeCloseTo(3.3, 1);
+      // reviewCountFactor = min(1, 3/5) = 0.6
+      // successRatio = 1/3 ≈ 0.333
+      // intervalFactor = min(1, log2(8)/log2(31)) ≈ 0.605
+      // recentBonus = not all successful → 0
+      // mastery = 0.6*3 + 0.333*3 + 0.605*3 + 0 ≈ 4.6
+      expect(mastery).toBeCloseTo(4.6, 1);
     });
 
-    it('should give low mastery for first review with small interval', () => {
+    it('should give moderate mastery for first review with small interval', () => {
       const reviews: CompletedReviewData[] = [
         {
           result: ReviewResult.PERFECT,
@@ -354,10 +358,12 @@ describe('SpacedRepetitionService', () => {
 
       const mastery = service.calculateSystemMastery(reviews);
 
+      // reviewCountFactor = min(1, 1/5) = 0.2
       // successRatio = 1/1 = 1.0
-      // intervalFactor = log2(1 + 1) / 3 = log2(2) / 3 = 1/3 ≈ 0.333
-      // mastery = min(10, 1.0 * 10 * 0.333) = 3.3
-      expect(mastery).toBeCloseTo(3.3, 1);
+      // intervalFactor = min(1, log2(2)/log2(31)) ≈ 0.202
+      // recentBonus = all 1 successful → 1
+      // mastery = 0.2*3 + 1.0*3 + 0.202*3 + 1 ≈ 5.2
+      expect(mastery).toBeCloseTo(5.2, 1);
     });
 
     it('should cap mastery at 10', () => {
@@ -396,28 +402,33 @@ describe('SpacedRepetitionService', () => {
 
       const mastery = service.calculateSystemMastery(allRegular);
 
+      // reviewCountFactor = min(1, 2/5) = 0.4
       // successRatio = 0/2 = 0 (regular is not successful)
-      expect(mastery).toBe(0);
+      // intervalFactor = min(1, log2(8)/log2(31)) ≈ 0.605
+      // recentBonus = 0 successful → 0
+      // mastery = 0.4*3 + 0*3 + 0.605*3 + 0 ≈ 3.0
+      expect(mastery).toBeCloseTo(3.0, 1);
     });
   });
 
   // --- determineTopicStatus ---
 
   describe('determineTopicStatus', () => {
-    it('should return mastered when mastery >= 8', () => {
+    it('should return mastered when mastery >= 7', () => {
+      expect(service.determineTopicStatus(7)).toBe('mastered');
       expect(service.determineTopicStatus(8)).toBe('mastered');
       expect(service.determineTopicStatus(9)).toBe('mastered');
       expect(service.determineTopicStatus(10)).toBe('mastered');
     });
 
-    it('should return in_progress when mastery < 8', () => {
+    it('should return in_progress when mastery < 7', () => {
       expect(service.determineTopicStatus(0)).toBe('in_progress');
       expect(service.determineTopicStatus(5)).toBe('in_progress');
-      expect(service.determineTopicStatus(7.9)).toBe('in_progress');
+      expect(service.determineTopicStatus(6.9)).toBe('in_progress');
     });
 
-    it('should treat exactly 8 as mastered', () => {
-      expect(service.determineTopicStatus(8)).toBe('mastered');
+    it('should treat exactly 7 as mastered', () => {
+      expect(service.determineTopicStatus(7)).toBe('mastered');
     });
   });
 

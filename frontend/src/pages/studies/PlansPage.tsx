@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, BookOpen, ChevronRight } from 'lucide-react';
+import { Plus, BookOpen, ChevronRight, Pencil, Trash2, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studiesApi } from '../../api/studies.api';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent } from '../../components/ui/Card';
+import { HelpTooltip } from '../../components/ui/HelpTooltip';
+import { Input } from '../../components/ui/Input';
 import type { StudyPlan } from '../../types';
 
 export function PlansPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [newPlan, setNewPlan] = useState({ name: '', description: '' });
+  const [editingPlan, setEditingPlan] = useState<{ id: string; name: string; description: string } | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['study-plans'],
@@ -31,6 +38,27 @@ export function PlansPage() {
     onError: () => toast.error('Error al crear el plan'),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<StudyPlan> }) =>
+      studiesApi.updatePlan(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-plans'] });
+      setEditingPlan(null);
+      toast.success('Plan actualizado');
+    },
+    onError: () => toast.error('Error al actualizar el plan'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => studiesApi.deletePlan(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-plans'] });
+      setDeletingPlanId(null);
+      toast.success('Plan eliminado');
+    },
+    onError: () => toast.error('Error al eliminar el plan'),
+  });
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlan.name.trim()) return;
@@ -41,103 +69,220 @@ export function PlansPage() {
   };
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Cargando planes...</div>;
+    return (
+      <div className="flex h-52 items-center justify-center">
+        <p className="text-sm text-muted-foreground">Cargando planes...</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Planes de Estudio</h1>
-          <p className="text-muted-foreground text-sm">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Planes de Estudio</h1>
+            <HelpTooltip
+              content="La jerarquía de estudio es: Plan → Asignatura → Tema → Sesión → Repaso. Crea un plan para agrupar asignaturas, luego añade temas a cada asignatura y registra sesiones de estudio."
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
             Organiza tus estudios por planes, asignaturas y temas
           </p>
         </div>
-        <button
+        <Button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="h-11 gap-2"
         >
           <Plus className="h-4 w-4" />
           Nuevo plan
-        </button>
+        </Button>
       </div>
 
-      {/* Formulario nuevo plan */}
       {showForm && (
-        <form
-          onSubmit={handleCreate}
-          className="rounded-lg border border-border p-4 space-y-3"
-        >
-          <input
-            type="text"
-            placeholder="Nombre del plan (ej: Oposiciones 2026)"
-            value={newPlan.name}
-            onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            autoFocus
-          />
-          <input
-            type="text"
-            placeholder="Descripción (opcional)"
-            value={newPlan.description}
-            onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              Crear
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <form onSubmit={handleCreate} className="space-y-3">
+              <Input
+                type="text"
+                placeholder="Nombre del plan (ej: Oposiciones 2026)"
+                value={newPlan.name}
+                onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                className="h-11"
+                autoFocus
+              />
+              <Input
+                type="text"
+                placeholder="Descripcion (opcional)"
+                value={newPlan.description}
+                onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                className="h-11"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" disabled={createMutation.isPending} className="h-11">
+                  Crear
+                </Button>
+                <Button type="button" onClick={() => setShowForm(false)} variant="secondary" className="h-11">
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Lista de planes */}
       {plans?.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-medium">Sin planes de estudio</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Crea tu primer plan para empezar a organizar tus estudios
-          </p>
-        </div>
+        <Card>
+          <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-12 text-center">
+            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-medium">Aún no tienes planes de estudio</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Un plan de estudio agrupa tus asignaturas y temas. Por ejemplo: &quot;Oposiciones 2026&quot; o
+              &quot;Carrera de Derecho&quot;. Crea tu primer plan para empezar a organizar tus estudios.
+            </p>
+            <Button
+              onClick={() => setShowForm(true)}
+              className="mt-5 h-11 gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Crear mi primer plan
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {plans?.map((plan) => (
-            <Link
+            <Card
               key={plan.id}
-              to={`/studies/${plan.id}`}
-              className="group rounded-lg border border-border p-5 hover:border-primary/50 hover:shadow-sm transition-all"
+              className="group relative border-border/90 transition-all duration-200 hover:border-brand-primary-500/45 hover:shadow-soft"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold group-hover:text-primary transition-colors">
-                    {plan.name}
-                  </h3>
-                  {plan.description && (
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                      {plan.description}
-                    </p>
-                  )}
+              {editingPlan?.id === plan.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!editingPlan.name.trim()) return;
+                    updateMutation.mutate({
+                      id: plan.id,
+                      data: {
+                        name: editingPlan.name,
+                        description: editingPlan.description || undefined,
+                      },
+                    });
+                  }}
+                  className="space-y-2 p-5"
+                >
+                  <Input
+                    type="text"
+                    value={editingPlan.name}
+                    onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
+                    className="h-10"
+                    autoFocus
+                  />
+                  <Input
+                    type="text"
+                    value={editingPlan.description}
+                    onChange={(e) => setEditingPlan({ ...editingPlan, description: e.target.value })}
+                    placeholder="Descripcion (opcional)"
+                    className="h-10"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      disabled={updateMutation.isPending}
+                      size="icon"
+                      className="h-9 w-9"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setEditingPlan(null)}
+                      variant="secondary"
+                      size="icon"
+                      className="h-9 w-9"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </form>
+              ) : deletingPlanId === plan.id ? (
+                <div className="space-y-3 rounded-xl border border-state-danger/25 bg-state-danger-soft p-5 text-state-danger-foreground">
+                  <p className="text-sm font-semibold">
+                    ¿Eliminar &quot;{plan.name}&quot;?
+                  </p>
+                  <p className="text-xs text-state-danger-foreground/85">
+                    Se eliminarán todas sus asignaturas y temas. Esta acción no se puede deshacer.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => deleteMutation.mutate(plan.id)}
+                      disabled={deleteMutation.isPending}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+                    </Button>
+                    <Button
+                      onClick={() => setDeletingPlanId(null)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-                <span>{plan.subjects?.length || 0} asignaturas</span>
-                <span className="capitalize">{plan.status === 'active' ? 'Activo' : plan.status}</span>
-              </div>
-            </Link>
+              ) : (
+                <CardContent className="space-y-4 p-5">
+                  <div className="flex items-start justify-between">
+                    <Link to={`/studies/${plan.id}`} className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-text-primary transition-colors group-hover:text-primary">
+                        {plan.name}
+                      </h3>
+                      {plan.description && (
+                        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                          {plan.description}
+                        </p>
+                      )}
+                    </Link>
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setEditingPlan({
+                            id: plan.id,
+                            name: plan.name,
+                            description: plan.description || '',
+                          });
+                        }}
+                        className="rounded-md p-1.5 text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 opacity-0 group-hover:opacity-100"
+                        title="Editar plan"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setDeletingPlanId(plan.id);
+                        }}
+                        className="rounded-md p-1.5 text-muted-foreground transition-all hover:bg-state-danger-soft hover:text-state-danger-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-state-danger/30 opacity-0 group-hover:opacity-100"
+                        title="Eliminar plan"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                      <Link to={`/studies/${plan.id}`}>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant="neutral">{plan.subjects?.length || 0} asignaturas</Badge>
+                    <Badge variant={plan.status === 'active' ? 'success' : 'outline'} className="capitalize">
+                      {plan.status === 'active' ? 'Activo' : plan.status}
+                    </Badge>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
           ))}
         </div>
       )}

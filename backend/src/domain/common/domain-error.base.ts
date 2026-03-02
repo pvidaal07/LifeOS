@@ -1,10 +1,19 @@
 export abstract class DomainError extends Error {
+  public readonly details?: Record<string, unknown>;
+  public readonly httpStatus?: number;
+
   constructor(
     public readonly code: string,
     message: string,
+    options?: {
+      details?: Record<string, unknown>;
+      httpStatus?: number;
+    },
   ) {
     super(message);
     this.name = this.constructor.name;
+    this.details = options?.details;
+    this.httpStatus = options?.httpStatus;
     // Maintain proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, new.target.prototype);
   }

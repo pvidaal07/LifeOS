@@ -52,6 +52,46 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
   }
 
   /**
+   * Fetch upcoming reviews (scheduled after today), joined with topic/subject/plan info.
+   * These are reviews not yet due — visible in the "upcoming" section.
+   * Ordered by scheduledDate ASC (soonest first).
+   */
+  async findUpcomingByUserId(
+    userId: string,
+    afterDate: Date,
+    limit: number = 20,
+  ): Promise<ReviewScheduleWithTopic[]> {
+    const reviews = await this.prisma.reviewSchedule.findMany({
+      where: {
+        userId,
+        status: 'pending',
+        scheduledDate: { gt: afterDate },
+      },
+      include: {
+        topic: {
+          include: {
+            subject: {
+              include: {
+                studyPlan: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { scheduledDate: 'asc' },
+      take: limit,
+    });
+
+    return reviews.map((review) => ({
+      review: ReviewScheduleMapper.toDomain(review),
+      topicName: review.topic.name,
+      subjectName: review.topic.subject.name,
+      subjectColor: review.topic.subject.color,
+      planName: review.topic.subject.studyPlan.name,
+    }));
+  }
+
+  /**
    * Fetch a single pending review by ID, scoped to userId.
    * Used by completeReview / skipReview use-cases.
    */
@@ -67,14 +107,34 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
   }
 
   /**
+   * Fetch the most urgent pending review for a topic, scoped to userId.
+   * Returns the review with the earliest scheduledDate (most overdue first).
+   * Used by CreateSessionUseCase to auto-complete reviews when a study session
+   * of type "review" is registered.
+   */
+  async findPendingByTopicId(
+    topicId: string,
+    userId: string,
+  ): Promise<ReviewSchedule | null> {
+    const review = await this.prisma.reviewSchedule.findFirst({
+      where: { topicId, userId, status: 'pending' },
+      orderBy: { scheduledDate: 'asc' },
+    });
+
+    return review ? ReviewScheduleMapper.toDomain(review) : null;
+  }
+
+  /**
    * Fetch completed reviews for a topic — used to calculate system mastery.
    * Returns only the fields needed for mastery computation.
+   * Scoped to userId for data isolation.
    */
   async findCompletedByTopicId(
     topicId: string,
+    userId: string,
   ): Promise<CompletedReviewData[]> {
     const reviews = await this.prisma.reviewSchedule.findMany({
-      where: { topicId, status: 'completed' },
+      where: { topicId, userId, status: 'completed' },
       orderBy: { completedDate: 'asc' },
       select: {
         result: true,
