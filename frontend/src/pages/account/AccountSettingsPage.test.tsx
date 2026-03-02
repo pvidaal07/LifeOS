@@ -17,6 +17,10 @@ const mockStudiesApi = vi.hoisted(() => ({
   updateReviewSettings: vi.fn(),
 }));
 
+const mockAuthApi = vi.hoisted(() => ({
+  changePassword: vi.fn(),
+}));
+
 const setUserMock = vi.hoisted(() => vi.fn());
 const logoutMock = vi.hoisted(() => vi.fn());
 
@@ -26,6 +30,10 @@ vi.mock('../../api/users.api', () => ({
 
 vi.mock('../../api/studies.api', () => ({
   studiesApi: mockStudiesApi,
+}));
+
+vi.mock('../../api/auth.api', () => ({
+  authApi: mockAuthApi,
 }));
 
 vi.mock('../../stores/auth.store', () => ({
@@ -132,9 +140,16 @@ describe('AccountSettingsPage', () => {
     mockUsersApi.getMe.mockResolvedValue(profileResponse);
     mockUsersApi.getMyModules.mockResolvedValue(modulesResponse);
     mockStudiesApi.getReviewSettings.mockResolvedValue(reviewSettingsResponse);
+    mockAuthApi.changePassword.mockResolvedValue({
+      data: {
+        data: {
+          message: 'Contraseña actualizada correctamente',
+        },
+      },
+    });
   });
 
-  it('renders sections and shows explicit password unsupported state', async () => {
+  it('renders sections and shows password change form', async () => {
     renderPage();
 
     expect(await screen.findByText('Cuenta y configuracion')).toBeInTheDocument();
@@ -143,7 +158,109 @@ describe('AccountSettingsPage', () => {
     expect(screen.getByText('Configuracion de repasos')).toBeInTheDocument();
     // expect(screen.getByText('Modulos activos')).toBeInTheDocument();
     expect(screen.getByText('Contraseña')).toBeInTheDocument();
-    expect(screen.getByText(/no está disponible desde la app web/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Contraseña actual')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nueva contraseña')).toBeInTheDocument();
+    expect(screen.getByLabelText('Confirmar nueva contraseña')).toBeInTheDocument();
+  });
+
+  it('validates password form before calling API', async () => {
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText('Contraseña actual'), {
+      target: { value: 'password-vigente' },
+    });
+    fireEvent.change(screen.getByLabelText('Nueva contraseña'), {
+      target: { value: 'corta' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirmar nueva contraseña'), {
+      target: { value: 'diferente' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar contraseña' }));
+
+    expect(mockAuthApi.changePassword).not.toHaveBeenCalled();
+    expect(screen.getByText('La nueva contraseña debe tener al menos 8 caracteres')).toBeInTheDocument();
+    expect(screen.getByText('Las contraseñas no coinciden')).toBeInTheDocument();
+  });
+
+  it('sends backend-compatible payload for password change', async () => {
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText('Contraseña actual'), {
+      target: { value: 'password-vigente' },
+    });
+    fireEvent.change(screen.getByLabelText('Nueva contraseña'), {
+      target: { value: 'nueva-password-segura' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirmar nueva contraseña'), {
+      target: { value: 'nueva-password-segura' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar contraseña' }));
+
+    await waitFor(() => {
+      expect(mockAuthApi.changePassword).toHaveBeenCalledWith({
+        currentPassword: 'password-vigente',
+        newPassword: 'nueva-password-segura',
+      });
+    });
+  });
+
+  it('shows backend reuse error mapped to new password field', async () => {
+    mockAuthApi.changePassword.mockRejectedValue({
+      response: {
+        status: 400,
+        data: {
+          code: 'PASSWORD_REUSE_NOT_ALLOWED',
+          message: 'La nueva contraseña debe ser diferente a la actual',
+        },
+      },
+    });
+
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText('Contraseña actual'), {
+      target: { value: 'password-vigente' },
+    });
+    fireEvent.change(screen.getByLabelText('Nueva contraseña'), {
+      target: { value: 'password-vigente-otra-vez' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirmar nueva contraseña'), {
+      target: { value: 'password-vigente-otra-vez' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar contraseña' }));
+
+    expect(await screen.findByText('La nueva contraseña debe ser diferente a la actual')).toBeInTheDocument();
+  });
+
+  it('maps 401 invalid-current-password to current password field error', async () => {
+    mockAuthApi.changePassword.mockRejectedValue({
+      response: {
+        status: 401,
+        data: {
+          code: 'INVALID_CURRENT_PASSWORD',
+          message: 'La contraseña actual no es correcta',
+        },
+      },
+    });
+
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText('Contraseña actual'), {
+      target: { value: 'password-incorrecta' },
+    });
+    fireEvent.change(screen.getByLabelText('Nueva contraseña'), {
+      target: { value: 'nueva-password-segura' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirmar nueva contraseña'), {
+      target: { value: 'nueva-password-segura' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar contraseña' }));
+
+    expect(await screen.findByText('La contraseña actual no es correcta')).toBeInTheDocument();
+    expect(screen.queryByText('La nueva contraseña debe ser diferente a la actual')).not.toBeInTheDocument();
   });
 
   it('updates profile and syncs auth store identity', async () => {

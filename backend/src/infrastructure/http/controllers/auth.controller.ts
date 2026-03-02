@@ -17,6 +17,7 @@ import { LoginUseCase } from '../../../application/use-cases/auth';
 import { VerifyEmailUseCase } from '../../../application/use-cases/auth';
 import { ResendVerificationCodeUseCase } from '../../../application/use-cases/auth';
 import { RefreshTokensUseCase } from '../../../application/use-cases/auth';
+import { ChangePasswordUseCase } from '../../../application/use-cases/auth';
 import { GetProfileUseCase } from '../../../application/use-cases/users';
 import { JwtAuthGuard, JwtRefreshAuthGuard, CurrentUser } from '../../auth';
 import {
@@ -24,6 +25,7 @@ import {
   LoginDto,
   VerifyEmailDto,
   ResendVerificationDto,
+  ChangePasswordDto,
 } from '../dto/auth';
 import { UsersController } from './users.controller';
 
@@ -41,6 +43,8 @@ export class AuthController {
     private readonly resendVerificationCodeUseCase: ResendVerificationCodeUseCase,
     @Inject(USE_CASE_TOKENS.RefreshTokensUseCase)
     private readonly refreshTokensUseCase: RefreshTokensUseCase,
+    @Inject(USE_CASE_TOKENS.ChangePasswordUseCase)
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
     @Inject(USE_CASE_TOKENS.GetProfileUseCase)
     private readonly getProfileUseCase: GetProfileUseCase,
   ) {}
@@ -129,6 +133,22 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('refresh_token');
     return { message: 'Sesión cerrada correctamente' };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
+  async changePassword(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.changePasswordUseCase.execute({
+      userId,
+      currentPassword: dto.currentPassword,
+      newPassword: dto.newPassword,
+    });
   }
 
   @Get('profile')

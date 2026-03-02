@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { authApi } from '../../api/auth.api';
 import { studiesApi } from '../../api/studies.api';
 import { usersApi } from '../../api/users.api';
 import { Button } from '../../components/ui/Button';
@@ -16,17 +17,11 @@ import {
   type ReviewSettingsPresetId,
 } from '../../lib/review-settings-presets';
 import { useAuthStore } from '../../stores/auth.store';
-import type { UserModule, UserProfileResponse, UserSettings } from '../../types';
+import type { UserProfileResponse } from '../../types';
 
 type ProfileFormState = {
   name: string;
   avatarUrl: string;
-};
-
-type PreferencesFormState = {
-  timezone: string;
-  locale: string;
-  theme: string;
 };
 
 type ReviewSettingsFormState = {
@@ -37,29 +32,16 @@ type ReviewSettingsFormState = {
   badReset: boolean;
 };
 
-const SETTINGS_QUERY_KEY = ['account-settings', 'profile'];
-const MODULES_QUERY_KEY = ['account-settings', 'modules'];
-const REVIEW_SETTINGS_QUERY_KEY = ['review-settings'];
-
-const MODULE_LABELS: Record<string, string> = {
-  studies: 'Estudios',
-  dashboard: 'Inicio',
-  reviews: 'Repasos',
-  sport: 'Deporte',
-  nutrition: 'Nutricion',
+type PasswordFormState = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 };
 
-function getInitialPreferences(settings?: UserSettings | null): PreferencesFormState {
-  return {
-    timezone: settings?.timezone ?? 'Europe/Madrid',
-    locale: settings?.locale ?? 'es',
-    theme: settings?.theme ?? 'system',
-  };
-}
+type PasswordFormErrors = Partial<Record<keyof PasswordFormState, string>>;
 
-function getModuleLabel(moduleKey: string): string {
-  return MODULE_LABELS[moduleKey] ?? moduleKey;
-}
+const SETTINGS_QUERY_KEY = ['account-settings', 'profile'];
+const REVIEW_SETTINGS_QUERY_KEY = ['review-settings'];
 
 function toReviewSettingsForm(settings: ReviewSettingsPayload): ReviewSettingsFormState {
   return {
@@ -98,6 +80,28 @@ function parseReviewSettingsForm(formState: ReviewSettingsFormState): ReviewSett
   };
 }
 
+function validatePasswordForm(formState: PasswordFormState): PasswordFormErrors {
+  const errors: PasswordFormErrors = {};
+
+  if (!formState.currentPassword) {
+    errors.currentPassword = 'Ingresa tu contraseña actual';
+  }
+
+  if (!formState.newPassword) {
+    errors.newPassword = 'Ingresa una nueva contraseña';
+  } else if (formState.newPassword.length < 8) {
+    errors.newPassword = 'La nueva contraseña debe tener al menos 8 caracteres';
+  }
+
+  if (!formState.confirmPassword) {
+    errors.confirmPassword = 'Confirma la nueva contraseña';
+  } else if (formState.confirmPassword !== formState.newPassword) {
+    errors.confirmPassword = 'Las contraseñas no coinciden';
+  }
+
+  return errors;
+}
+
 export function AccountSettingsPage() {
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
@@ -108,17 +112,17 @@ export function AccountSettingsPage() {
     name: '',
     avatarUrl: '',
   });
-  const [preferencesForm, setPreferencesForm] = useState<PreferencesFormState>({
-    timezone: 'Europe/Madrid',
-    locale: 'es',
-    theme: 'system',
-  });
-  const [moduleDraft, setModuleDraft] = useState<UserModule[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<ReviewSettingsPresetId>('normal');
   const [reviewSettingsForm, setReviewSettingsForm] = useState<ReviewSettingsFormState>(
     toReviewSettingsForm(getPresetSettings('normal')),
   );
   const [showAdvancedReviewSettings, setShowAdvancedReviewSettings] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [passwordFormErrors, setPasswordFormErrors] = useState<PasswordFormErrors>({});
 
   const {
     data: profile,
@@ -129,17 +133,6 @@ export function AccountSettingsPage() {
     queryFn: async () => {
       const response = await usersApi.getMe();
       return response.data.data as UserProfileResponse;
-    },
-  });
-
-  const {
-    data: modules,
-    isLoading: isModulesLoading,
-  } = useQuery({
-    queryKey: MODULES_QUERY_KEY,
-    queryFn: async () => {
-      const response = await usersApi.getMyModules();
-      return response.data.data as UserModule[];
     },
   });
 
@@ -163,17 +156,7 @@ export function AccountSettingsPage() {
       name: profile.name ?? '',
       avatarUrl: profile.avatarUrl ?? '',
     });
-
-    setPreferencesForm(getInitialPreferences(profile.settings));
   }, [profile]);
-
-  useEffect(() => {
-    if (!modules) {
-      return;
-    }
-
-    setModuleDraft(modules);
-  }, [modules]);
 
   useEffect(() => {
     if (!reviewSettings) {
@@ -212,42 +195,6 @@ export function AccountSettingsPage() {
     },
   });
 
-  const updatePreferencesMutation = useMutation({
-    mutationFn: () =>
-      usersApi.updateMySettings({
-        timezone: preferencesForm.timezone.trim() || undefined,
-        locale: preferencesForm.locale.trim() || undefined,
-        theme: preferencesForm.theme.trim() || undefined,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
-      toast.success('Preferencias guardadas');
-    },
-    onError: () => {
-      toast.error('No se pudieron guardar las preferencias');
-    },
-  });
-
-  const updateModulesMutation = useMutation({
-    mutationFn: () =>
-      usersApi.updateMyModules(
-        moduleDraft.map((mod, index) => ({
-          moduleKey: mod.moduleKey,
-          isActive: mod.isActive,
-          displayOrder: index,
-        })),
-      ),
-    onSuccess: (response) => {
-      const updatedModules = response.data.data;
-      queryClient.setQueryData(MODULES_QUERY_KEY, updatedModules);
-      queryClient.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
-      toast.success('Modulos actualizados');
-    },
-    onError: () => {
-      toast.error('No se pudieron actualizar los modulos');
-    },
-  });
-
   const updateReviewSettingsMutation = useMutation({
     mutationFn: (payload: ReviewSettingsPayload) => studiesApi.updateReviewSettings(payload),
     onSuccess: (response) => {
@@ -263,25 +210,46 @@ export function AccountSettingsPage() {
     },
   });
 
-  const activeModulesCount = useMemo(
-    () => moduleDraft.filter((moduleItem) => moduleItem.isActive).length,
-    [moduleDraft],
-  );
+  const changePasswordMutation = useMutation({
+    mutationFn: () =>
+      authApi.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      }),
+    onSuccess: (response) => {
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setPasswordFormErrors({});
+      toast.success(response.data.data.message || 'Contraseña actualizada correctamente');
+    },
+    onError: (error: any) => {
+      const status = error.response?.status;
+      const payload = error.response?.data as { code?: string; message?: string } | undefined;
 
-  const hasModuleChanges = useMemo(() => {
-    if (!modules || modules.length !== moduleDraft.length) {
-      return false;
-    }
+      if (payload?.code === 'PASSWORD_REUSE_NOT_ALLOWED') {
+        setPasswordFormErrors((prev) => ({
+          ...prev,
+          newPassword: 'La nueva contraseña debe ser diferente a la actual',
+        }));
+        toast.error(payload.message || 'La nueva contraseña debe ser diferente a la actual');
+        return;
+      }
 
-    return modules.some((savedModule, index) => {
-      const draft = moduleDraft[index];
-      return (
-        savedModule.moduleKey !== draft.moduleKey ||
-        savedModule.isActive !== draft.isActive ||
-        savedModule.displayOrder !== draft.displayOrder
-      );
-    });
-  }, [moduleDraft, modules]);
+      if (status === 401) {
+        setPasswordFormErrors((prev) => ({
+          ...prev,
+          currentPassword: 'La contraseña actual no es correcta',
+        }));
+        toast.error(payload?.message || 'La contraseña actual no es correcta');
+        return;
+      }
+
+      toast.error(payload?.message || 'No se pudo actualizar la contraseña');
+    },
+  });
 
   const selectedPresetDescription = useMemo(() => {
     if (selectedPreset === 'custom') {
@@ -308,6 +276,34 @@ export function AccountSettingsPage() {
 
     setSelectedPreset(detectReviewSettingsPreset(parsedPayload));
     updateReviewSettingsMutation.mutate(parsedPayload);
+  };
+
+  const handlePasswordInputChange = (field: keyof PasswordFormState, value: string) => {
+    setPasswordForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    if (passwordFormErrors[field]) {
+      setPasswordFormErrors((prev) => {
+        const nextErrors = { ...prev };
+        delete nextErrors[field];
+        return nextErrors;
+      });
+    }
+  };
+
+  const handleChangePassword = () => {
+    const errors = validatePasswordForm(passwordForm);
+
+    if (Object.keys(errors).length > 0) {
+      setPasswordFormErrors(errors);
+      toast.error('Revisa los datos antes de actualizar la contraseña');
+      return;
+    }
+
+    setPasswordFormErrors({});
+    changePasswordMutation.mutate();
   };
 
   if (isProfileLoading) {
@@ -682,18 +678,67 @@ export function AccountSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Contraseña</CardTitle>
-          <CardDescription>
-            El cambio de contraseña todavía no está disponible desde la app web.
-          </CardDescription>
+          <CardDescription>Cambia tu contraseña usando tu contraseña actual como verificación.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Mientras tanto, puedes
-            seguir usando tu sesión actual sin bloqueos.
-          </p>
-          <Button variant="secondary" disabled>
-            Cambio de contraseña pendiente
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-1">
+              <label htmlFor="current-password" className="mb-1 block text-sm font-medium text-text-primary">
+                Contraseña actual
+              </label>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={passwordForm.currentPassword}
+                hasError={Boolean(passwordFormErrors.currentPassword)}
+                onChange={(event) => handlePasswordInputChange('currentPassword', event.target.value)}
+              />
+              {passwordFormErrors.currentPassword && (
+                <p className="text-xs text-state-danger-foreground">{passwordFormErrors.currentPassword}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="new-password" className="mb-1 block text-sm font-medium text-text-primary">
+                Nueva contraseña
+              </label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.newPassword}
+                hasError={Boolean(passwordFormErrors.newPassword)}
+                onChange={(event) => handlePasswordInputChange('newPassword', event.target.value)}
+              />
+              {passwordFormErrors.newPassword && (
+                <p className="text-xs text-state-danger-foreground">{passwordFormErrors.newPassword}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="confirm-password" className="mb-1 block text-sm font-medium text-text-primary">
+                Confirmar nueva contraseña
+              </label>
+              <Input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.confirmPassword}
+                hasError={Boolean(passwordFormErrors.confirmPassword)}
+                onChange={(event) => handlePasswordInputChange('confirmPassword', event.target.value)}
+              />
+              {passwordFormErrors.confirmPassword && (
+                <p className="text-xs text-state-danger-foreground">{passwordFormErrors.confirmPassword}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={handleChangePassword} disabled={changePasswordMutation.isPending}>
+              {changePasswordMutation.isPending ? 'Actualizando...' : 'Actualizar contraseña'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

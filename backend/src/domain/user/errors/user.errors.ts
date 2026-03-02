@@ -68,3 +68,11 @@ export class VerificationDeliveryError extends DomainError {
     });
   }
 }
+
+export class PasswordReuseNotAllowedError extends DomainError {
+  constructor() {
+    super('PASSWORD_REUSE_NOT_ALLOWED', 'La nueva contraseña debe ser diferente a la actual', {
+      httpStatus: 400,
+    });
+  }
+}

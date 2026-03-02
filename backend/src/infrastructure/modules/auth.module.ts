@@ -50,6 +50,7 @@ import {
   ResendVerificationCodeUseCase,
   RefreshTokensUseCase,
   IssueVerificationCodeService,
+  ChangePasswordUseCase,
 } from '../../application/use-cases/auth';
 import { GetProfileUseCase } from '../../application/use-cases/users';
 
@@ -214,6 +215,14 @@ import type {
       useFactory: (userRepo: UserRepositoryPort, authToken: AuthTokenPort) =>
         new RefreshTokensUseCase(userRepo, authToken),
       inject: [USER_REPOSITORY, AUTH_TOKEN],
+    },
+    {
+      provide: USE_CASE_TOKENS.ChangePasswordUseCase,
+      useFactory: (
+        userRepo: UserRepositoryPort,
+        passwordHasher: PasswordHasherPort,
+      ) => new ChangePasswordUseCase(userRepo, passwordHasher),
+      inject: [USER_REPOSITORY, PASSWORD_HASHER],
     },
     {
       provide: USE_CASE_TOKENS.GetProfileUseCase,

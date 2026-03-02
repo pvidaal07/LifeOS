@@ -167,6 +167,11 @@ export class User extends AggregateRoot {
     this._updatedAt = new Date();
   }
 
+  changePassword(passwordHash: string): void {
+    this._passwordHash = passwordHash;
+    this._updatedAt = new Date();
+  }
+
   canResendVerificationCode(cooldownSeconds: number, now = new Date()): {
     allowed: boolean;
     remainingSeconds: number;

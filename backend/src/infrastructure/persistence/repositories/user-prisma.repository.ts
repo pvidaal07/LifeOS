@@ -69,6 +69,7 @@ export class UserPrismaRepository implements UserRepositoryPort {
       where: { id: data.id },
       data: {
         name: data.name,
+        passwordHash: data.passwordHash,
         avatarUrl: data.avatarUrl,
         isActive: data.isActive,
         emailVerified: data.emailVerified,

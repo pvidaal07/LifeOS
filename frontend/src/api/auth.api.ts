@@ -8,6 +8,8 @@ import type {
   VerifyEmailPayload,
   VerifyEmailResponse,
   ResendVerificationPayload,
+  ChangePasswordPayload,
+  ChangePasswordResponse,
 } from '../types';
 
 export const authApi = {
@@ -28,4 +30,7 @@ export const authApi = {
 
   logout: () =>
     apiClient.post('/auth/logout'),
+
+  changePassword: (data: ChangePasswordPayload) =>
+    apiClient.post<ApiResponse<ChangePasswordResponse>>('/auth/change-password', data),
 };

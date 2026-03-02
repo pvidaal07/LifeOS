@@ -10,6 +10,7 @@ export const USE_CASE_TOKENS = {
   VerifyEmailUseCase: 'VerifyEmailUseCase',
   ResendVerificationCodeUseCase: 'ResendVerificationCodeUseCase',
   RefreshTokensUseCase: 'RefreshTokensUseCase',
+  ChangePasswordUseCase: 'ChangePasswordUseCase',
 
   // ── Users ─────────────────────────────────────
   GetProfileUseCase: 'GetProfileUseCase',

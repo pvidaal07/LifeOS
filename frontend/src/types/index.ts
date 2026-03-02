@@ -63,6 +63,15 @@ export interface RegisterData {
   name: string;
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
 // ─── Settings ────────────────────────────────
 
 export interface UserSettings {

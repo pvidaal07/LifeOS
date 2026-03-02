@@ -17,3 +17,8 @@ export type {
   IssueVerificationCodeOutput,
   VerificationDeliveryMode,
 } from './issue-verification-code.service';
+export { ChangePasswordUseCase } from './change-password.use-case';
+export type {
+  ChangePasswordInput,
+  ChangePasswordOutput,
+} from './change-password.use-case';
