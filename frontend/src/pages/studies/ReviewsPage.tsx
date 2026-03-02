@@ -88,7 +88,7 @@ function ReviewSettingsSummaryCard() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">Configuracion de repasos</CardTitle>
+            <CardTitle className="text-lg">Configuración de repasos</CardTitle>
           </div>
           <Button
             variant="secondary"

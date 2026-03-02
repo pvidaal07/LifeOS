@@ -83,7 +83,7 @@ Incluye:
 LifeOS/
 |- backend/    API y reglas de negocio
 |- frontend/   App web
-|- db/         Configuracion de base de datos y entorno
+|- db/         Configuración de base de datos y entorno
 |- docs/       Vision de producto y alcance
 |- skills/     Reglas y guias de desarrollo asistido por IA
 ```

@@ -73,7 +73,7 @@ vi.mock('../pages/studies/ReviewsPage', () => ({
 }));
 
 vi.mock('../pages/account/AccountSettingsPage', () => ({
-  AccountSettingsPage: () => <h2>Cuenta y configuracion</h2>,
+  AccountSettingsPage: () => <h2>Cuenta y configuración</h2>,
 }));
 
 function renderRoutes(initialEntry: string) {

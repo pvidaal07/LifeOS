@@ -203,10 +203,10 @@ export function AccountSettingsPage() {
       queryClient.invalidateQueries({ queryKey: REVIEW_SETTINGS_QUERY_KEY });
       setSelectedPreset(detectReviewSettingsPreset(updatedSettings));
       setReviewSettingsForm(toReviewSettingsForm(updatedSettings));
-      toast.success('Configuracion de repasos guardada');
+      toast.success('Configuración de repasos guardada');
     },
     onError: () => {
-      toast.error('No se pudo guardar la configuracion de repasos');
+      toast.error('No se pudo guardar la configuración de repasos');
     },
   });
 
@@ -253,7 +253,7 @@ export function AccountSettingsPage() {
 
   const selectedPresetDescription = useMemo(() => {
     if (selectedPreset === 'custom') {
-      return 'Detectamos una configuracion personalizada. Puedes mantenerla o cambiar a un preset.';
+      return 'Detectamos una configuración personalizada. Puedes mantenerla o cambiar a un preset.';
     }
 
     return REVIEW_SETTINGS_PRESETS.find((preset) => preset.id === selectedPreset)?.description ?? '';
@@ -309,7 +309,7 @@ export function AccountSettingsPage() {
   if (isProfileLoading) {
     return (
       <div className="flex h-52 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Cargando configuracion de cuenta...</p>
+        <p className="text-sm text-muted-foreground">Cargando configuración de cuenta...</p>
       </div>
     );
   }
@@ -320,7 +320,7 @@ export function AccountSettingsPage() {
         <CardHeader>
           <CardTitle>No se pudo cargar la cuenta</CardTitle>
           <CardDescription>
-            Intenta refrescar la pagina o vuelve a iniciar sesion.
+            Intenta refrescar la página o vuelve a iniciar sesión.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -330,16 +330,16 @@ export function AccountSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Cuenta y configuracion</h1>
+        <h1 className="text-2xl font-bold">Cuenta y configuración</h1>
         <p className="text-sm text-muted-foreground">
-          Gestiona tu identidad, tus preferencias y los modulos visibles del workspace.
+          Gestiona tu identidad, tus preferencias y los módulos visibles del workspace.
         </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Perfil</CardTitle>
-          <CardDescription>Actualiza el nombre y avatar que se muestran en la aplicacion.</CardDescription>
+          <CardDescription>Actualiza el nombre y avatar que se muestran en la aplicación.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -457,14 +457,14 @@ export function AccountSettingsPage() {
 
       <Card id="review-settings">
         <CardHeader>
-          <CardTitle>Configuracion de repasos</CardTitle>
+          <CardTitle>Configuración de repasos</CardTitle>
           <CardDescription>
             Este es el editor principal de repasos. Elige un preset o personaliza en modo avanzado.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {isReviewSettingsLoading ? (
-            <p className="text-sm text-muted-foreground">Cargando configuracion de repasos...</p>
+            <p className="text-sm text-muted-foreground">Cargando configuración de repasos...</p>
           ) : (
             <>
               <div className="grid gap-3 md:grid-cols-3">
@@ -497,7 +497,7 @@ export function AccountSettingsPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Editar valores avanzados</p>
                   <p className="text-xs text-muted-foreground">
-                    Ajusta intervalos y multiplicadores manualmente. Si no coincide con un preset quedara como personalizado.
+                    Ajusta intervalos y multiplicadores manualmente. Si no coincide con un preset quedará como personalizado.
                   </p>
                 </div>
                 <button
@@ -522,7 +522,7 @@ export function AccountSettingsPage() {
               {showAdvancedReviewSettings && (
                 <div className="space-y-4 rounded-lg border border-border bg-surface px-4 py-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Intervalos base (dias)</label>
+                    <label className="text-sm font-medium">Intervalos base (días)</label>
                     <Input
                       type="text"
                       value={reviewSettingsForm.baseIntervals}

@@ -152,11 +152,11 @@ describe('AccountSettingsPage', () => {
   it('renders sections and shows password change form', async () => {
     renderPage();
 
-    expect(await screen.findByText('Cuenta y configuracion')).toBeInTheDocument();
+    expect(await screen.findByText('Cuenta y configuración')).toBeInTheDocument();
     expect(screen.getByText('Perfil')).toBeInTheDocument();
     // expect(screen.getByText('Preferencias')).toBeInTheDocument();
-    expect(screen.getByText('Configuracion de repasos')).toBeInTheDocument();
-    // expect(screen.getByText('Modulos activos')).toBeInTheDocument();
+    expect(screen.getByText('Configuración de repasos')).toBeInTheDocument();
+    // expect(screen.getByText('Módulos activos')).toBeInTheDocument();
     expect(screen.getByText('Contraseña')).toBeInTheDocument();
     expect(screen.getByLabelText('Contraseña actual')).toBeInTheDocument();
     expect(screen.getByLabelText('Nueva contraseña')).toBeInTheDocument();
@@ -405,7 +405,7 @@ describe('AccountSettingsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Configuracion de repasos')).toBeInTheDocument();
+    expect(await screen.findByText('Configuración de repasos')).toBeInTheDocument();
     expect(screen.getByText(/Modo actual: Normal/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Modo avanzado desactivado' }));
@@ -432,7 +432,7 @@ describe('AccountSettingsPage', () => {
 
     expect(
       screen.getByText(
-        'Detectamos una configuracion personalizada. Puedes mantenerla o cambiar a un preset.',
+        'Detectamos una configuración personalizada. Puedes mantenerla o cambiar a un preset.',
       ),
     ).toBeInTheDocument();
   });

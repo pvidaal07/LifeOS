@@ -169,20 +169,20 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </p>
         {navigation.map((item) => {
           switch (item.type) {
-            case 'disabled':
-              return (
-                <div
-                  key={item.name}
-                  aria-disabled="true"
-                  className="flex items-center gap-3 rounded-lg border border-dashed border-white/10 px-3 py-2.5 text-sm font-medium text-sidebar-muted/50"
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                  <span className="ml-auto rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sidebar-muted/60">
-                    Soon
-                  </span>
-                </div>
-              );
+            // case 'disabled':
+            //   return (
+            //     <div
+            //       key={item.name}
+            //       aria-disabled="true"
+            //       className="flex items-center gap-3 rounded-lg border border-dashed border-white/10 px-3 py-2.5 text-sm font-medium text-sidebar-muted/50"
+            //     >
+            //       <item.icon className="h-4 w-4" />
+            //       <span>{item.name}</span>
+            //       <span className="ml-auto rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sidebar-muted/60">
+            //         Soon
+            //       </span>
+            //     </div>
+            //   );
 
             case 'section':
               return (

@@ -37,7 +37,7 @@ vi.mock('../components/layout/MainLayout', async () => {
 });
 
 vi.mock('../pages/account/AccountSettingsPage', () => ({
-  AccountSettingsPage: () => <h2>Cuenta y configuracion</h2>,
+  AccountSettingsPage: () => <h2>Cuenta y configuración</h2>,
 }));
 
 vi.mock('../pages/LoginPage', () => ({
@@ -89,7 +89,7 @@ describe('Account settings route protection', () => {
   it('lets authenticated users open account settings from protected route', () => {
     renderRoutes('/account/settings');
 
-    expect(screen.getByRole('heading', { name: 'Cuenta y configuracion' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Cuenta y configuración' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Main Layout' })).toBeInTheDocument();
   });
 
@@ -98,6 +98,6 @@ describe('Account settings route protection', () => {
     renderRoutes('/account/settings');
 
     expect(screen.getByRole('heading', { name: 'Pantalla de login' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Cuenta y configuracion' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Cuenta y configuración' })).not.toBeInTheDocument();
   });
 });

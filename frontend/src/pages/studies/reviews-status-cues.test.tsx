@@ -52,7 +52,7 @@ function renderReviewsPage() {
       <MemoryRouter initialEntries={['/studies/reviews']}>
         <Routes>
           <Route path="/studies/reviews" element={<ReviewsPage />} />
-          <Route path="/account/settings" element={<h2>Cuenta y configuracion</h2>} />
+          <Route path="/account/settings" element={<h2>Cuenta y configuración</h2>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -88,12 +88,12 @@ describe('Reviews visual status cues', () => {
     setupMocks();
     renderReviewsPage();
 
-    expect(await screen.findByText('Configuracion de repasos')).toBeInTheDocument();
+    expect(await screen.findByText('Configuración de repasos')).toBeInTheDocument();
     expect(await screen.findByText(/Preset activo:/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Editar en Cuenta' }));
 
-    expect(await screen.findByRole('heading', { name: 'Cuenta y configuracion' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Cuenta y configuración' })).toBeInTheDocument();
   });
 
   it('shows urgency and result labels as explicit text cues', async () => {
