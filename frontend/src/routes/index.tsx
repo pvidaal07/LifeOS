@@ -6,6 +6,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { VerifyEmailPage } from '../pages/VerifyEmailPage';
 import { DashboardPage } from '../pages/DashboardPage';
+import { LandingPage } from '../pages/landing/LandingPage';
 import { PlansPage } from '../pages/studies/PlansPage';
 import { PlanDetailPage } from '../pages/studies/PlanDetailPage';
 import { TopicDetailPage } from '../pages/studies/TopicDetailPage';
@@ -16,6 +17,7 @@ export function AppRoutes() {
   return (
     <Routes>
       {/* Rutas públicas */}
+      <Route path="/" element={<PublicLandingRoute element={<LandingPage />} />} />
       <Route path="/login" element={<PublicAuthRoute element={<LoginPage />} />} />
       <Route path="/register" element={<PublicAuthRoute element={<RegisterPage />} />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -23,7 +25,6 @@ export function AppRoutes() {
       {/* Rutas protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/studies" element={<PlansPage />} />
           <Route path="/studies/:planId" element={<PlanDetailPage />} />
@@ -42,6 +43,21 @@ export function AppRoutes() {
 }
 
 function PublicAuthRoute({ element }: { element: JSX.Element }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const pendingVerification = useAuthStore((state) => state.pendingVerification);
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (pendingVerification) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
+  return element;
+}
+
+function PublicLandingRoute({ element }: { element: JSX.Element }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const pendingVerification = useAuthStore((state) => state.pendingVerification);
 

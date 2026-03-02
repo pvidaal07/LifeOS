@@ -7,6 +7,7 @@ import { studiesApi } from '../../api/studies.api';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { HelpTooltip } from '../../components/ui/HelpTooltip';
 import { Input } from '../../components/ui/Input';
 import { detectReviewSettingsPreset, getReviewSettingsPresetLabel } from '../../lib/review-settings-presets';
 import { cn } from '../../lib/utils';
@@ -245,6 +246,9 @@ export function ReviewsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Repasos pendientes</h1>
+          <HelpTooltip
+            content="La repetición espaciada programa repasos a intervalos crecientes (ej. 1, 7, 30 días) para reforzar la memoria a largo plazo. Completa cada repaso e indica qué tal fue para que el sistema ajuste los próximos intervalos."
+          />
           {sortedReviews.length > 0 && (
             <Badge variant="secondary" className="px-2.5 py-0.5 text-sm font-medium">
               {sortedReviews.length}
@@ -257,10 +261,17 @@ export function ReviewsPage() {
 
       {sortedReviews.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <p>No tienes repasos pendientes por hoy.</p>
+          <CardContent className="p-8 text-center">
+            <RotateCcw className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <h3 className="mt-3 text-base font-medium">No tienes repasos pendientes</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Los repasos se generan automáticamente cuando estudias un tema por primera vez.
+              El sistema usa repetición espaciada para ayudarte a memorizar a largo plazo.
+            </p>
             {(upcomingReviews ?? []).length > 0 && (
-              <p className="mt-1 text-sm">Revisa más abajo tus próximos repasos programados.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Revisa más abajo tus próximos repasos programados.
+              </p>
             )}
           </CardContent>
         </Card>

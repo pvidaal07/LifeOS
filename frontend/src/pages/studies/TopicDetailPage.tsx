@@ -7,6 +7,7 @@ import { studiesApi } from '../../api/studies.api';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
+import { HelpTooltip } from '../../components/ui/HelpTooltip';
 import { Input } from '../../components/ui/Input';
 import type { Topic } from '../../types';
 
@@ -461,8 +462,27 @@ export function TopicDetailPage() {
         </h2>
         {(topic as any).studySessions?.length === 0 ? (
           <Card>
-            <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center text-muted-foreground">
-              Aún no hay sesiones registradas para este tema
+            <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center">
+              <History className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <h3 className="mt-2 text-sm font-medium">Aún no hay sesiones registradas</h3>
+              <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+                Registra tu primera sesión de estudio para este tema. El sistema creará automáticamente
+                un calendario de repasos espaciados para ayudarte a retener lo aprendido.
+              </p>
+              <Button
+                onClick={() => {
+                  setSessionFormData({
+                    sessionType: topic.status === 'not_started' ? 'first_time' : undefined,
+                  });
+                  setShowSessionForm(true);
+                }}
+                variant="secondary"
+                size="sm"
+                className="mt-3 gap-1"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Registrar primera sesión
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -510,10 +530,18 @@ export function TopicDetailPage() {
         </div>
         {(topic as any).reviewSchedules?.length === 0 ? (
           <Card>
-            <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center text-muted-foreground">
-              {topic.status === 'not_started'
-                ? 'Estudia este tema para activar el sistema de repasos automáticos'
-                : 'No hay repasos programados aún'}
+            <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center">
+              <RotateCcw className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <h3 className="mt-2 text-sm font-medium">
+                {topic.status === 'not_started'
+                  ? 'Sin repasos programados'
+                  : 'No hay repasos aún'}
+              </h3>
+              <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+                {topic.status === 'not_started'
+                  ? 'Estudia este tema por primera vez para activar el sistema de repasos espaciados automáticos.'
+                  : 'Los repasos se programan automáticamente después de estudiar. Revisa la página de Repasos para ver si hay alguno pendiente.'}
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -556,7 +584,12 @@ export function TopicDetailPage() {
         <div className={MODAL_BACKDROP_CLASS}>
           <div className={MODAL_PANEL_CLASS}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Registrar sesión</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">Registrar sesión</h3>
+                <HelpTooltip
+                  content="Las sesiones de estudio registran cuándo y cómo estudiaste un tema. La primera sesión activa los repasos espaciados automáticos. Puedes indicar duración, calidad percibida y notas."
+                />
+              </div>
               <Button
                 onClick={() => { setShowSessionForm(false); setSessionFormData({}); }}
                 variant="ghost"

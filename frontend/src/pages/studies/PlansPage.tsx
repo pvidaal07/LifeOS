@@ -7,6 +7,7 @@ import { studiesApi } from '../../api/studies.api';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
+import { HelpTooltip } from '../../components/ui/HelpTooltip';
 import { Input } from '../../components/ui/Input';
 import type { StudyPlan } from '../../types';
 
@@ -79,7 +80,12 @@ export function PlansPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Planes de Estudio</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Planes de Estudio</h1>
+            <HelpTooltip
+              content="La jerarquía de estudio es: Plan → Asignatura → Tema → Sesión → Repaso. Crea un plan para agrupar asignaturas, luego añade temas a cada asignatura y registra sesiones de estudio."
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
             Organiza tus estudios por planes, asignaturas y temas
           </p>
@@ -129,10 +135,18 @@ export function PlansPage() {
         <Card>
           <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-12 text-center">
             <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-medium">Sin planes de estudio</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Crea tu primer plan para empezar a organizar tus estudios
+            <h3 className="mt-4 text-lg font-medium">Aún no tienes planes de estudio</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Un plan de estudio agrupa tus asignaturas y temas. Por ejemplo: &quot;Oposiciones 2026&quot; o
+              &quot;Carrera de Derecho&quot;. Crea tu primer plan para empezar a organizar tus estudios.
             </p>
+            <Button
+              onClick={() => setShowForm(true)}
+              className="mt-5 h-11 gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Crear mi primer plan
+            </Button>
           </CardContent>
         </Card>
       ) : (

@@ -4,14 +4,17 @@ import { Link } from 'react-router-dom';
 import { studiesApi } from '../api/studies.api';
 import { Badge } from '../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { HelpTooltip } from '../components/ui/HelpTooltip';
 import {
   GreetingWidget,
   WeeklyTrendChart,
   StreakWidget,
   SubjectProgressWidget,
   UpcomingReviewsWidget,
+  WelcomeCard,
 } from '../components/dashboard';
-import type { DashboardData } from '../types';
+import { useOnboardingStore } from '../stores/onboarding.store';
+import type { DashboardData, StudyPlan } from '../types';
 
 const SUBJECT_COLOR_FALLBACK = 'hsl(var(--color-primary-500))';
 
@@ -23,6 +26,21 @@ export function DashboardPage() {
       return res.data.data as DashboardData;
     },
   });
+
+  const { data: plans, isLoading: isLoadingPlans } = useQuery({
+    queryKey: ['study-plans'],
+    queryFn: async () => {
+      const res = await studiesApi.getPlans();
+      return res.data.data as StudyPlan[];
+    },
+  });
+
+  const welcomeCardDismissed = useOnboardingStore((s) => s.welcomeCardDismissed);
+  const dismissWelcomeCard = useOnboardingStore((s) => s.dismissWelcomeCard);
+
+  const plansCount = plans?.length ?? 0;
+  const showWelcomeCard =
+    !isLoading && !isLoadingPlans && plansCount === 0 && !welcomeCardDismissed;
 
   if (isLoading) {
     return (
@@ -40,7 +58,16 @@ export function DashboardPage() {
         sessionsToday={data?.today.sessionsCompleted ?? 0}
       />
 
+      {/* Onboarding: WelcomeCard for new users */}
+      {showWelcomeCard && <WelcomeCard onDismiss={dismissWelcomeCard} />}
+
       {/* Stats + Streak row */}
+      <div className="flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-semibold">Estadísticas</h2>
+        <HelpTooltip
+          content="Resumen de tu actividad de estudio: repasos que necesitan atención, sesiones completadas y tiempo dedicado esta semana. Mantén la racha diaria para formar hábito."
+        />
+      </div>
       <div className="grid gap-4 md:grid-cols-5">
         <StatCard
           icon={<AlertTriangle className="h-4 w-4" />}

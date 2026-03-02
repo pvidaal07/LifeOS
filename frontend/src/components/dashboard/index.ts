@@ -3,3 +3,4 @@ export { WeeklyTrendChart } from './WeeklyTrendChart';
 export { StreakWidget } from './StreakWidget';
 export { SubjectProgressWidget } from './SubjectProgressWidget';
 export { UpcomingReviewsWidget } from './UpcomingReviewsWidget';
+export { WelcomeCard } from './WelcomeCard';

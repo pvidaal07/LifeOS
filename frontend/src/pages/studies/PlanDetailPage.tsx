@@ -366,8 +366,20 @@ export function PlanDetailPage() {
       {/* Asignaturas y temas */}
       {plan.subjects?.length === 0 ? (
         <Card>
-          <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-8 text-center text-muted-foreground">
-            Añade tu primera asignatura para empezar
+          <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-8 text-center">
+            <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <h3 className="mt-3 text-base font-medium">Aún no tienes asignaturas</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Las asignaturas organizan los temas dentro de tu plan. Por ejemplo: &quot;Derecho Civil&quot; o
+              &quot;Matemáticas&quot;. Añade tu primera asignatura para empezar a crear temas y estudiar.
+            </p>
+            <Button
+              onClick={() => setShowSubjectForm(true)}
+              className="mt-4 h-11 gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Añadir primera asignatura
+            </Button>
           </CardContent>
         </Card>
       ) : (

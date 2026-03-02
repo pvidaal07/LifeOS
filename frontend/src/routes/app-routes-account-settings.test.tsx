@@ -44,6 +44,10 @@ vi.mock('../pages/LoginPage', () => ({
   LoginPage: () => <h2>Pantalla de login</h2>,
 }));
 
+vi.mock('../pages/landing/LandingPage', () => ({
+  LandingPage: () => <h2>Landing Page</h2>,
+}));
+
 vi.mock('../pages/RegisterPage', () => ({
   RegisterPage: () => <h2>Pantalla de registro</h2>,
 }));
