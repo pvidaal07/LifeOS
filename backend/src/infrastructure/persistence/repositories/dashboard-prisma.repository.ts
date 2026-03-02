@@ -11,6 +11,10 @@ import {
   StreakData,
   SubjectProgressItem,
 } from '../../../application/ports/dashboard-repository.port';
+import {
+  getWeeklyTrendUtcWindow,
+  toUtcDayKey,
+} from './dashboard-weekly-trend.utils';
 
 @Injectable()
 export class DashboardPrismaRepository implements DashboardRepositoryPort {
@@ -29,10 +33,8 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
 
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // 7 days ago at midnight for weekly trend
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const { startUtc, endExclusiveUtc } = getWeeklyTrendUtcWindow(now);
 
     const [
       pendingReviewsRaw,
@@ -136,16 +138,17 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
 
       // Weekly trend: daily minutes for last 7 days
       this.prisma.$queryRaw<
-        Array<{ date: Date; total_minutes: bigint; session_count: bigint }>
+        Array<{ day_key: string; total_minutes: bigint; session_count: bigint }>
       >`
-        SELECT DATE(studied_at) as date,
+        SELECT to_char(studied_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') as day_key,
                COALESCE(SUM(duration_minutes), 0) as total_minutes,
                COUNT(*)::bigint as session_count
         FROM study_sessions
         WHERE user_id = ${userId}
-          AND studied_at >= ${sevenDaysAgo}
-        GROUP BY DATE(studied_at)
-        ORDER BY date ASC
+          AND studied_at >= ${startUtc}
+          AND studied_at < ${endExclusiveUtc}
+        GROUP BY day_key
+        ORDER BY day_key ASC
       `,
 
       // Streak: distinct study dates, walking backward
@@ -214,7 +217,7 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
     }));
 
     // Build weekly trend with gap-filling for missing days
-    const weeklyTrend = this.buildWeeklyTrend(weeklyTrendRaw, sevenDaysAgo);
+    const weeklyTrend = this.buildWeeklyTrend(weeklyTrendRaw, startUtc);
 
     // Compute streak from distinct study dates
     const streak = this.computeStreak(streakDatesRaw);
@@ -243,13 +246,16 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
    * Fill in missing days with zeros to ensure exactly 7 entries.
    */
   private buildWeeklyTrend(
-    rawData: Array<{ date: Date; total_minutes: bigint; session_count: bigint }>,
+    rawData: Array<{
+      day_key: string;
+      total_minutes: bigint;
+      session_count: bigint;
+    }>,
     startDate: Date,
   ): WeeklyTrendItem[] {
     const dateMap = new Map<string, { totalMinutes: number; sessionCount: number }>();
     for (const row of rawData) {
-      const dateStr = new Date(row.date).toISOString().split('T')[0];
-      dateMap.set(dateStr, {
+      dateMap.set(row.day_key, {
         totalMinutes: Number(row.total_minutes),
         sessionCount: Number(row.session_count),
       });
@@ -257,9 +263,9 @@ export class DashboardPrismaRepository implements DashboardRepositoryPort {
 
     const result: WeeklyTrendItem[] = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toUtcDayKey(
+        new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000),
+      );
       const entry = dateMap.get(dateStr);
       result.push({
         date: dateStr,
