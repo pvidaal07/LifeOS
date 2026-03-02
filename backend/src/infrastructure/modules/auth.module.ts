@@ -29,6 +29,7 @@ import {
   BcryptPasswordHasherService,
   JwtAuthTokenService,
   EmailVerificationSenderService,
+  SmtpEmailVerificationSenderService,
   JwtStrategy,
   JwtRefreshStrategy,
 } from '../auth';
@@ -87,7 +88,21 @@ import type {
     // ── Auth adapter bindings ────────────────────────
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasherService },
     { provide: AUTH_TOKEN, useClass: JwtAuthTokenService },
-    { provide: EMAIL_VERIFICATION_SENDER, useClass: EmailVerificationSenderService },
+    EmailVerificationSenderService,
+    SmtpEmailVerificationSenderService,
+    {
+      provide: EMAIL_VERIFICATION_SENDER,
+      useFactory: (
+        config: ConfigService,
+        logSender: EmailVerificationSenderService,
+        smtpSender: SmtpEmailVerificationSenderService,
+      ) => resolveEmailVerificationSender(config, logSender, smtpSender),
+      inject: [
+        ConfigService,
+        EmailVerificationSenderService,
+        SmtpEmailVerificationSenderService,
+      ],
+    },
 
     // ── Passport strategies ──────────────────────────
     JwtStrategy,
@@ -210,4 +225,13 @@ function getEmailVerificationConfig(config: ConfigService): EmailVerificationCon
     resendCooldownSeconds: config.get<number>('emailVerification.resendCooldownSeconds', 60),
     maxAttempts: config.get<number>('emailVerification.maxAttempts', 5),
   };
+}
+
+export function resolveEmailVerificationSender(
+  config: ConfigService,
+  logSender: EmailVerificationSenderPort,
+  smtpSender: EmailVerificationSenderPort,
+): EmailVerificationSenderPort {
+  const transport = config.get<'smtp' | 'log'>('emailVerification.transport', 'log');
+  return transport === 'smtp' ? smtpSender : logSender;
 }
