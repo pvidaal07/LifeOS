@@ -47,8 +47,8 @@ export class SmtpEmailVerificationSenderService implements EmailVerificationSend
       await this.transporter.sendMail({
         from: this.fromAddress,
         to: input.toEmail,
-        subject: 'LifeOS - Codigo de verificacion',
-        text: `Hola ${input.name},\n\nTu codigo de verificacion es: ${input.code}\n\nEste codigo expira en ${input.expiresInMinutes} minutos.`,
+        subject: 'LifeOS - Código de verificación',
+        text: `Hola ${input.name},\n\nTu código de verificación es: ${input.code}\n\nEste código expira en ${input.expiresInMinutes} minutos.`,
       });
     } catch (error) {
       const deliveryError = new Error('SMTP email verification delivery failed');

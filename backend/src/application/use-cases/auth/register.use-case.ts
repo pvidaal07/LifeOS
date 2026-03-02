@@ -1,13 +1,10 @@
 import { User } from '../../../domain/user';
 import { UserSettings, UserModule, UserInitializationService } from '../../../domain/user';
-import { DuplicateEmailError, VerificationDeliveryError } from '../../../domain/user';
+import { DuplicateEmailError } from '../../../domain/user';
 import { UserRepositoryPort, UserSettingsRepositoryPort, UserModuleRepositoryPort } from '../../ports/user-repository.port';
 import { PasswordHasherPort } from '../../ports/auth.port';
-import {
-  EmailVerificationSenderPort,
-  EmailVerificationConfig,
-} from '../../ports/email-verification.port';
-import { generateVerificationCode, maskEmail } from './email-verification.utils';
+import { maskEmail } from './email-verification.utils';
+import { IssueVerificationCodeService } from './issue-verification-code.service';
 
 export interface RegisterInput {
   email: string;
@@ -35,8 +32,7 @@ export class RegisterUseCase {
     private readonly userModuleRepo: UserModuleRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
     private readonly userInit: UserInitializationService,
-    private readonly verificationSender: EmailVerificationSenderPort,
-    private readonly verificationConfig: EmailVerificationConfig,
+    private readonly issueVerificationCode: IssueVerificationCodeService,
   ) {}
 
   async execute(input: RegisterInput): Promise<RegisterOutput> {
@@ -57,24 +53,7 @@ export class RegisterUseCase {
       name: input.name,
     });
 
-    const code = generateVerificationCode(this.verificationConfig.codeLength);
-    const verificationCodeHash = await this.passwordHasher.hash(code);
-    const verificationExpiresAt = new Date(
-      Date.now() + this.verificationConfig.expiresInMinutes * 60 * 1000,
-    );
-    user.setVerificationCode({
-      codeHash: verificationCodeHash,
-      expiresAt: verificationExpiresAt,
-      sentAt: new Date(),
-    });
-
-    // Persist user
-    await this.userRepo.save(user);
-
-    // Create default settings
-    const defaultSettingsConfig = this.userInit.getDefaultSettings();
     const settings = UserSettings.createDefault(crypto.randomUUID(), user.id);
-    await this.userSettingsRepo.upsert(settings);
 
     // Create default modules
     const defaultModules = this.userInit.getDefaultModules();
@@ -87,18 +66,16 @@ export class RegisterUseCase {
         displayOrder: mod.displayOrder,
       }),
     );
-    await this.userModuleRepo.upsertMany(user.id, modules);
 
-    try {
-      await this.verificationSender.sendVerificationCode({
-        toEmail: user.email,
-        name: user.name,
-        code,
-        expiresInMinutes: this.verificationConfig.expiresInMinutes,
-      });
-    } catch {
-      throw new VerificationDeliveryError();
-    }
+    const issuance = await this.issueVerificationCode.execute({
+      user,
+      mode: 'strict',
+      persistVerificationState: async () => {
+        await this.userRepo.save(user);
+        await this.userSettingsRepo.upsert(settings);
+        await this.userModuleRepo.upsertMany(user.id, modules);
+      },
+    });
 
     return {
       user: {
@@ -109,8 +86,8 @@ export class RegisterUseCase {
       },
       requiresVerification: true,
       emailMasked: maskEmail(user.email),
-      cooldownSeconds: this.verificationConfig.resendCooldownSeconds,
-      verificationExpiresAt,
+      cooldownSeconds: issuance.cooldownSeconds,
+      verificationExpiresAt: issuance.verificationExpiresAt,
     };
   }
 }

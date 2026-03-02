@@ -47,6 +47,7 @@ import {
   VerifyEmailUseCase,
   ResendVerificationCodeUseCase,
   RefreshTokensUseCase,
+  IssueVerificationCodeService,
 } from '../../application/use-cases/auth';
 import { GetProfileUseCase } from '../../application/use-cases/users';
 
@@ -110,14 +111,27 @@ import type {
 
     // ── Use-case factories ───────────────────────────
     {
+      provide: IssueVerificationCodeService,
+      useFactory: (
+        passwordHasher: PasswordHasherPort,
+        verificationSender: EmailVerificationSenderPort,
+        config: ConfigService,
+      ) =>
+        new IssueVerificationCodeService(
+          passwordHasher,
+          verificationSender,
+          getEmailVerificationConfig(config),
+        ),
+      inject: [PASSWORD_HASHER, EMAIL_VERIFICATION_SENDER, ConfigService],
+    },
+    {
       provide: USE_CASE_TOKENS.RegisterUseCase,
       useFactory: (
         userRepo: UserRepositoryPort,
         userSettingsRepo: UserSettingsRepositoryPort,
         userModuleRepo: UserModuleRepositoryPort,
         passwordHasher: PasswordHasherPort,
-        verificationSender: EmailVerificationSenderPort,
-        config: ConfigService,
+        issueVerificationCode: IssueVerificationCodeService,
       ) =>
         new RegisterUseCase(
           userRepo,
@@ -125,16 +139,14 @@ import type {
           userModuleRepo,
           passwordHasher,
           new UserInitializationService(),
-          verificationSender,
-          getEmailVerificationConfig(config),
+          issueVerificationCode,
         ),
       inject: [
         USER_REPOSITORY,
         USER_SETTINGS_REPOSITORY,
         USER_MODULE_REPOSITORY,
         PASSWORD_HASHER,
-        EMAIL_VERIFICATION_SENDER,
-        ConfigService,
+        IssueVerificationCodeService,
       ],
     },
     {
@@ -143,15 +155,23 @@ import type {
         userRepo: UserRepositoryPort,
         passwordHasher: PasswordHasherPort,
         authToken: AuthTokenPort,
+        issueVerificationCode: IssueVerificationCodeService,
         config: ConfigService,
       ) =>
         new LoginUseCase(
           userRepo,
           passwordHasher,
           authToken,
+          issueVerificationCode,
           getEmailVerificationConfig(config),
         ),
-      inject: [USER_REPOSITORY, PASSWORD_HASHER, AUTH_TOKEN, ConfigService],
+      inject: [
+        USER_REPOSITORY,
+        PASSWORD_HASHER,
+        AUTH_TOKEN,
+        IssueVerificationCodeService,
+        ConfigService,
+      ],
     },
     {
       provide: USE_CASE_TOKENS.VerifyEmailUseCase,
@@ -173,22 +193,10 @@ import type {
       provide: USE_CASE_TOKENS.ResendVerificationCodeUseCase,
       useFactory: (
         userRepo: UserRepositoryPort,
-        passwordHasher: PasswordHasherPort,
-        verificationSender: EmailVerificationSenderPort,
-        config: ConfigService,
+        issueVerificationCode: IssueVerificationCodeService,
       ) =>
-        new ResendVerificationCodeUseCase(
-          userRepo,
-          passwordHasher,
-          verificationSender,
-          getEmailVerificationConfig(config),
-        ),
-      inject: [
-        USER_REPOSITORY,
-        PASSWORD_HASHER,
-        EMAIL_VERIFICATION_SENDER,
-        ConfigService,
-      ],
+        new ResendVerificationCodeUseCase(userRepo, issueVerificationCode),
+      inject: [USER_REPOSITORY, IssueVerificationCodeService],
     },
     {
       provide: USE_CASE_TOKENS.RefreshTokensUseCase,

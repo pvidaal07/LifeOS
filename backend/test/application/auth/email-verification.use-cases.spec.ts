@@ -4,8 +4,10 @@ import {
   LoginUseCase,
   VerifyEmailUseCase,
   ResendVerificationCodeUseCase,
+  IssueVerificationCodeService,
 } from '../../../src/application/use-cases/auth';
 import { User } from '../../../src/domain/user';
+import { InvalidCredentialsError } from '../../../src/domain/common';
 import {
   EmailNotVerifiedError,
   VerificationCodeInvalidError,
@@ -64,14 +66,18 @@ describe('Email verification auth use-cases', () => {
     const userModuleRepo = createMockUserModuleRepository();
     const passwordHasher = createMockPasswordHasher();
     const userInit = new UserInitializationService();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
     const useCase = new RegisterUseCase(
       userRepo,
       userSettingsRepo,
       userModuleRepo,
       passwordHasher,
       userInit,
-      mockSender,
-      verificationConfig,
+      issueVerificationCode,
     );
 
     userRepo.existsByEmail.mockResolvedValue(false);
@@ -110,14 +116,18 @@ describe('Email verification auth use-cases', () => {
     const userModuleRepo = createMockUserModuleRepository();
     const passwordHasher = createMockPasswordHasher();
     const userInit = new UserInitializationService();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
     const useCase = new RegisterUseCase(
       userRepo,
       userSettingsRepo,
       userModuleRepo,
       passwordHasher,
       userInit,
-      mockSender,
-      verificationConfig,
+      issueVerificationCode,
     );
 
     userRepo.existsByEmail.mockResolvedValue(false);
@@ -149,16 +159,186 @@ describe('Email verification auth use-cases', () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
     const authToken = createMockAuthToken();
-    const useCase = new LoginUseCase(userRepo, passwordHasher, authToken, verificationConfig);
-    const user = createUnverifiedUser();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
+    const useCase = new LoginUseCase(
+      userRepo,
+      passwordHasher,
+      authToken,
+      issueVerificationCode,
+      verificationConfig,
+    );
+    const user = createUnverifiedUser({ sentAt: new Date(Date.now() - 90_000) });
+
+    userRepo.findByEmail.mockResolvedValue(user);
+    userRepo.update.mockResolvedValue(user);
+    passwordHasher.compare.mockResolvedValue(true);
+    passwordHasher.hash.mockResolvedValue('rotated-verification-hash');
+
+    await expect(
+      useCase.execute({ email: 'user@example.com', password: 'secret' }),
+    ).rejects.toMatchObject({
+      code: 'EMAIL_NOT_VERIFIED',
+      details: {
+        requiresVerification: true,
+        cooldownSeconds: verificationConfig.resendCooldownSeconds,
+      },
+    });
+
+    expect(userRepo.update).toHaveBeenCalledOnce();
+    expect(mockSender.sendVerificationCode).toHaveBeenCalledOnce();
+    expect(authToken.generateTokenPair).not.toHaveBeenCalled();
+  });
+
+  it('keeps EMAIL_NOT_VERIFIED contract when login auto-send fails', async () => {
+    const userRepo = createMockUserRepository();
+    const passwordHasher = createMockPasswordHasher();
+    const authToken = createMockAuthToken();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
+    const useCase = new LoginUseCase(
+      userRepo,
+      passwordHasher,
+      authToken,
+      issueVerificationCode,
+      verificationConfig,
+    );
+    const user = createUnverifiedUser({ sentAt: new Date(Date.now() - 90_000) });
+
+    userRepo.findByEmail.mockResolvedValue(user);
+    userRepo.update.mockResolvedValue(user);
+    passwordHasher.compare.mockResolvedValue(true);
+    passwordHasher.hash.mockResolvedValue('rotated-verification-hash');
+    mockSender.sendVerificationCode.mockRejectedValue(new Error('smtp timeout'));
+
+    await expect(
+      useCase.execute({ email: 'user@example.com', password: 'secret' }),
+    ).rejects.toMatchObject({
+      code: 'EMAIL_NOT_VERIFIED',
+      details: {
+        requiresVerification: true,
+        cooldownSeconds: verificationConfig.resendCooldownSeconds,
+      },
+    });
+
+    expect(userRepo.update).toHaveBeenCalledOnce();
+    expect(mockSender.sendVerificationCode).toHaveBeenCalledOnce();
+    expect(authToken.generateTokenPair).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-send on login while cooldown is active', async () => {
+    const userRepo = createMockUserRepository();
+    const passwordHasher = createMockPasswordHasher();
+    const authToken = createMockAuthToken();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
+    const useCase = new LoginUseCase(
+      userRepo,
+      passwordHasher,
+      authToken,
+      issueVerificationCode,
+      verificationConfig,
+    );
+    const now = new Date();
+    const user = createUnverifiedUser({ sentAt: now });
 
     userRepo.findByEmail.mockResolvedValue(user);
     passwordHasher.compare.mockResolvedValue(true);
 
     await expect(
       useCase.execute({ email: 'user@example.com', password: 'secret' }),
-    ).rejects.toBeInstanceOf(EmailNotVerifiedError);
+    ).rejects.toMatchObject({
+      code: 'EMAIL_NOT_VERIFIED',
+      details: {
+        requiresVerification: true,
+      },
+    });
 
+    expect(passwordHasher.hash).not.toHaveBeenCalled();
+    expect(userRepo.update).not.toHaveBeenCalled();
+    expect(mockSender.sendVerificationCode).not.toHaveBeenCalled();
+    expect(authToken.generateTokenPair).not.toHaveBeenCalled();
+  });
+
+  it('keeps cooldown countdown monotonic across repeated unverified login attempts', async () => {
+    vi.useFakeTimers();
+
+    const now = new Date('2026-02-01T10:00:00.000Z');
+    vi.setSystemTime(now);
+
+    const userRepo = createMockUserRepository();
+    const passwordHasher = createMockPasswordHasher();
+    const authToken = createMockAuthToken();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
+    const useCase = new LoginUseCase(
+      userRepo,
+      passwordHasher,
+      authToken,
+      issueVerificationCode,
+      verificationConfig,
+    );
+    const user = createUnverifiedUser({ sentAt: new Date(now.getTime() - 10_000) });
+
+    userRepo.findByEmail.mockResolvedValue(user);
+    passwordHasher.compare.mockResolvedValue(true);
+
+    const firstError = await useCase
+      .execute({ email: 'user@example.com', password: 'secret' })
+      .catch((error) => error as EmailNotVerifiedError);
+
+    vi.setSystemTime(new Date(now.getTime() + 5_000));
+
+    const secondError = await useCase
+      .execute({ email: 'user@example.com', password: 'secret' })
+      .catch((error) => error as EmailNotVerifiedError);
+
+    expect(firstError).toBeInstanceOf(EmailNotVerifiedError);
+    expect(secondError).toBeInstanceOf(EmailNotVerifiedError);
+    expect(secondError.details.cooldownSeconds).toBeLessThan(firstError.details.cooldownSeconds);
+    expect(mockSender.sendVerificationCode).not.toHaveBeenCalled();
+    expect(userRepo.update).not.toHaveBeenCalled();
+    expect(authToken.generateTokenPair).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-send on login when credentials are invalid', async () => {
+    const userRepo = createMockUserRepository();
+    const passwordHasher = createMockPasswordHasher();
+    const authToken = createMockAuthToken();
+    const issueVerificationCode = new IssueVerificationCodeService(
+      passwordHasher,
+      mockSender,
+      verificationConfig,
+    );
+    const useCase = new LoginUseCase(
+      userRepo,
+      passwordHasher,
+      authToken,
+      issueVerificationCode,
+      verificationConfig,
+    );
+
+    userRepo.findByEmail.mockResolvedValue(undefined);
+
+    await expect(
+      useCase.execute({ email: 'user@example.com', password: 'wrong' }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+
+    expect(passwordHasher.hash).not.toHaveBeenCalled();
+    expect(userRepo.update).not.toHaveBeenCalled();
+    expect(mockSender.sendVerificationCode).not.toHaveBeenCalled();
     expect(authToken.generateTokenPair).not.toHaveBeenCalled();
   });
 
@@ -253,12 +433,12 @@ describe('Email verification auth use-cases', () => {
   it('prevents resend while cooldown is active', async () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
-    const useCase = new ResendVerificationCodeUseCase(
-      userRepo,
+    const issueVerificationCode = new IssueVerificationCodeService(
       passwordHasher,
       mockSender,
       verificationConfig,
     );
+    const useCase = new ResendVerificationCodeUseCase(userRepo, issueVerificationCode);
     const user = createUnverifiedUser();
 
     userRepo.findByEmail.mockResolvedValue(user);
@@ -273,12 +453,12 @@ describe('Email verification auth use-cases', () => {
   it('resends after cooldown and rotates verification metadata', async () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
-    const useCase = new ResendVerificationCodeUseCase(
-      userRepo,
+    const issueVerificationCode = new IssueVerificationCodeService(
       passwordHasher,
       mockSender,
       verificationConfig,
     );
+    const useCase = new ResendVerificationCodeUseCase(userRepo, issueVerificationCode);
 
     const sentAt = new Date(Date.now() - 2 * 60_000);
     const originalExpiresAt = new Date(Date.now() + 60_000);

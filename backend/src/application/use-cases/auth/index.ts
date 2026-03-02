@@ -11,3 +11,9 @@ export type {
   ResendVerificationCodeInput,
   ResendVerificationCodeOutput,
 } from './resend-verification-code.use-case';
+export { IssueVerificationCodeService } from './issue-verification-code.service';
+export type {
+  IssueVerificationCodeInput,
+  IssueVerificationCodeOutput,
+  VerificationDeliveryMode,
+} from './issue-verification-code.service';

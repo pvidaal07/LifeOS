@@ -4,6 +4,7 @@ import { UserRepositoryPort } from '../../ports/user-repository.port';
 import { PasswordHasherPort, AuthTokenPort, TokenPair } from '../../ports/auth.port';
 import { EmailVerificationConfig } from '../../ports/email-verification.port';
 import { maskEmail } from './email-verification.utils';
+import { IssueVerificationCodeService } from './issue-verification-code.service';
 
 export interface LoginInput {
   email: string;
@@ -25,6 +26,7 @@ export class LoginUseCase {
     private readonly userRepo: UserRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
     private readonly authToken: AuthTokenPort,
+    private readonly issueVerificationCode: IssueVerificationCodeService,
     private readonly verificationConfig: EmailVerificationConfig,
   ) {}
 
@@ -50,9 +52,22 @@ export class LoginUseCase {
       const resendStatus = user.canResendVerificationCode(
         this.verificationConfig.resendCooldownSeconds,
       );
+
+      let cooldownSeconds = resendStatus.remainingSeconds;
+      if (resendStatus.allowed) {
+        const issuance = await this.issueVerificationCode.execute({
+          user,
+          mode: 'best-effort',
+          persistVerificationState: async () => {
+            await this.userRepo.update(user);
+          },
+        });
+        cooldownSeconds = issuance.cooldownSeconds;
+      }
+
       throw new EmailNotVerifiedError({
         emailMasked: maskEmail(user.email),
-        cooldownSeconds: resendStatus.remainingSeconds,
+        cooldownSeconds,
       });
     }
 

@@ -1,15 +1,9 @@
 import { UserRepositoryPort } from '../../ports/user-repository.port';
 import {
-  EmailVerificationSenderPort,
-  EmailVerificationConfig,
-} from '../../ports/email-verification.port';
-import {
-  VerificationCodeCooldownError,
   VerificationCodeInvalidError,
-  VerificationDeliveryError,
 } from '../../../domain/user';
-import { generateVerificationCode, maskEmail } from './email-verification.utils';
-import { PasswordHasherPort } from '../../ports/auth.port';
+import { maskEmail } from './email-verification.utils';
+import { IssueVerificationCodeService } from './issue-verification-code.service';
 
 export interface ResendVerificationCodeInput {
   email: string;
@@ -25,9 +19,7 @@ export interface ResendVerificationCodeOutput {
 export class ResendVerificationCodeUseCase {
   constructor(
     private readonly userRepo: UserRepositoryPort,
-    private readonly passwordHasher: PasswordHasherPort,
-    private readonly verificationSender: EmailVerificationSenderPort,
-    private readonly verificationConfig: EmailVerificationConfig,
+    private readonly issueVerificationCode: IssueVerificationCodeService,
   ) {}
 
   async execute(
@@ -38,43 +30,21 @@ export class ResendVerificationCodeUseCase {
       throw new VerificationCodeInvalidError();
     }
 
-    const resendStatus = user.canResendVerificationCode(
-      this.verificationConfig.resendCooldownSeconds,
-    );
-    if (!resendStatus.allowed) {
-      throw new VerificationCodeCooldownError(resendStatus.remainingSeconds);
-    }
-
-    const code = generateVerificationCode(this.verificationConfig.codeLength);
-    const verificationCodeHash = await this.passwordHasher.hash(code);
-    const verificationExpiresAt = new Date(
-      Date.now() + this.verificationConfig.expiresInMinutes * 60 * 1000,
-    );
-
-    user.setVerificationCode({
-      codeHash: verificationCodeHash,
-      expiresAt: verificationExpiresAt,
-      sentAt: new Date(),
+    const issuance = await this.issueVerificationCode.execute({
+      user,
+      mode: 'strict',
       incrementResendCount: true,
+      enforceCooldown: true,
+      persistVerificationState: async () => {
+        await this.userRepo.update(user);
+      },
     });
-    await this.userRepo.update(user);
-
-    try {
-      await this.verificationSender.sendVerificationCode({
-        toEmail: user.email,
-        name: user.name,
-        code,
-        expiresInMinutes: this.verificationConfig.expiresInMinutes,
-      });
-    } catch {
-      throw new VerificationDeliveryError();
-    }
 
     return {
       requiresVerification: true,
       emailMasked: maskEmail(user.email),
-      cooldownSeconds: this.verificationConfig.resendCooldownSeconds,
-      verificationExpiresAt,
+      cooldownSeconds: issuance.cooldownSeconds,
+      verificationExpiresAt: issuance.verificationExpiresAt,
     };
   }
 }

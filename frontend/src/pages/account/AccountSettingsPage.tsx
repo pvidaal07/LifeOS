@@ -368,7 +368,7 @@ export function AccountSettingsPage() {
               <Input id="profile-email" value={profile.email} disabled />
             </div>
 
-            <div className="md:col-span-2">
+            {/* <div className="md:col-span-2">
               <label htmlFor="profile-avatar" className="mb-1 block text-sm font-medium text-text-primary">
                 URL del avatar
               </label>
@@ -380,7 +380,7 @@ export function AccountSettingsPage() {
                 }
                 placeholder="https://..."
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="flex justify-end">
@@ -394,7 +394,7 @@ export function AccountSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Preferencias</CardTitle>
           <CardDescription>Define localizacion y tema visual por defecto.</CardDescription>
@@ -457,7 +457,7 @@ export function AccountSettingsPage() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card id="review-settings">
         <CardHeader>
@@ -624,7 +624,7 @@ export function AccountSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Modulos activos</CardTitle>
           <CardDescription>
@@ -677,22 +677,22 @@ export function AccountSettingsPage() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card>
         <CardHeader>
-          <CardTitle>Contrasena</CardTitle>
+          <CardTitle>Contraseña</CardTitle>
           <CardDescription>
-            El cambio de contrasena todavia no esta disponible desde la app web.
+            El cambio de contraseña todavía no está disponible desde la app web.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Este flujo depende de un endpoint backend que aun no existe. Mientras tanto, puedes
-            seguir usando tu sesion actual sin bloqueos.
+            Mientras tanto, puedes
+            seguir usando tu sesión actual sin bloqueos.
           </p>
           <Button variant="secondary" disabled>
-            Cambio de contrasena pendiente
+            Cambio de contraseña pendiente
           </Button>
         </CardContent>
       </Card>
@@ -700,7 +700,7 @@ export function AccountSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Acciones de cuenta</CardTitle>
-          <CardDescription>Gestiona tu sesion actual.</CardDescription>
+          <CardDescription>Gestiona tu sesión actual.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button
@@ -708,7 +708,7 @@ export function AccountSettingsPage() {
             onClick={() => logout()}
             disabled={isLogoutPending}
           >
-            {isLogoutPending ? 'Cerrando sesion...' : 'Cerrar sesion'}
+            {isLogoutPending ? 'Cerrando sesión...' : 'Cerrar sesión'}
           </Button>
         </CardContent>
       </Card>
