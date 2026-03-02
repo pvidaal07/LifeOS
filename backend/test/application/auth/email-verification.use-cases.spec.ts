@@ -35,6 +35,10 @@ describe('Email verification auth use-cases', () => {
     sendVerificationCode: vi.fn(),
   };
 
+  const clock = {
+    now: vi.fn(() => new Date()),
+  };
+
   const createUnverifiedUser = (params?: {
     sentAt?: Date;
     expiresAt?: Date;
@@ -58,6 +62,7 @@ describe('Email verification auth use-cases', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    clock.now.mockImplementation(() => new Date());
   });
 
   it('registers with pending verification metadata and no token pair', async () => {
@@ -70,6 +75,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new RegisterUseCase(
       userRepo,
@@ -120,6 +126,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new RegisterUseCase(
       userRepo,
@@ -163,6 +170,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new LoginUseCase(
       userRepo,
@@ -170,6 +178,7 @@ describe('Email verification auth use-cases', () => {
       authToken,
       issueVerificationCode,
       verificationConfig,
+      clock,
     );
     const user = createUnverifiedUser({ sentAt: new Date(Date.now() - 90_000) });
 
@@ -201,6 +210,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new LoginUseCase(
       userRepo,
@@ -208,6 +218,7 @@ describe('Email verification auth use-cases', () => {
       authToken,
       issueVerificationCode,
       verificationConfig,
+      clock,
     );
     const user = createUnverifiedUser({ sentAt: new Date(Date.now() - 90_000) });
 
@@ -240,6 +251,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new LoginUseCase(
       userRepo,
@@ -247,6 +259,7 @@ describe('Email verification auth use-cases', () => {
       authToken,
       issueVerificationCode,
       verificationConfig,
+      clock,
     );
     const now = new Date();
     const user = createUnverifiedUser({ sentAt: now });
@@ -282,6 +295,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new LoginUseCase(
       userRepo,
@@ -289,6 +303,7 @@ describe('Email verification auth use-cases', () => {
       authToken,
       issueVerificationCode,
       verificationConfig,
+      clock,
     );
     const user = createUnverifiedUser({ sentAt: new Date(now.getTime() - 10_000) });
 
@@ -321,6 +336,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new LoginUseCase(
       userRepo,
@@ -328,6 +344,7 @@ describe('Email verification auth use-cases', () => {
       authToken,
       issueVerificationCode,
       verificationConfig,
+      clock,
     );
 
     userRepo.findByEmail.mockResolvedValue(undefined);
@@ -346,7 +363,7 @@ describe('Email verification auth use-cases', () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
     const authToken = createMockAuthToken();
-    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig);
+    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig, clock);
     const user = createUnverifiedUser();
 
     userRepo.findByEmail.mockResolvedValue(user);
@@ -371,7 +388,7 @@ describe('Email verification auth use-cases', () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
     const authToken = createMockAuthToken();
-    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig);
+    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig, clock);
     const user = createUnverifiedUser();
 
     userRepo.findByEmail.mockResolvedValue(user);
@@ -390,7 +407,7 @@ describe('Email verification auth use-cases', () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
     const authToken = createMockAuthToken();
-    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig);
+    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig, clock);
     const user = createUnverifiedUser();
     for (let i = 0; i < verificationConfig.maxAttempts; i += 1) {
       user.incrementVerificationAttempt();
@@ -407,17 +424,15 @@ describe('Email verification auth use-cases', () => {
   });
 
   it('fails verification when code is expired', async () => {
-    vi.useFakeTimers();
-
     const now = new Date('2026-02-01T10:00:00.000Z');
     const sentAt = new Date(now.getTime() - 30_000);
     const expiresAt = new Date(now.getTime() + 30_000);
-    vi.setSystemTime(new Date(now.getTime() + 61_000));
+    clock.now.mockReturnValue(expiresAt);
 
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
     const authToken = createMockAuthToken();
-    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig);
+    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig, clock);
     const user = createUnverifiedUser({ sentAt, expiresAt });
 
     userRepo.findByEmail.mockResolvedValue(user);
@@ -430,6 +445,35 @@ describe('Email verification auth use-cases', () => {
     expect(userRepo.update).not.toHaveBeenCalled();
   });
 
+  it('treats timezone-offset expiry instants deterministically', async () => {
+    const expiresAtWithOffset = new Date('2026-02-01T12:00:00.000+02:00');
+    const sentAt = new Date('2026-02-01T11:55:00.000+02:00');
+    const beforeExpiryUtc = new Date('2026-02-01T09:59:59.999Z');
+    clock.now.mockReturnValue(beforeExpiryUtc);
+
+    const userRepo = createMockUserRepository();
+    const passwordHasher = createMockPasswordHasher();
+    const authToken = createMockAuthToken();
+    const useCase = new VerifyEmailUseCase(userRepo, passwordHasher, authToken, verificationConfig, clock);
+    const user = createUnverifiedUser({ sentAt, expiresAt: expiresAtWithOffset });
+
+    userRepo.findByEmail.mockResolvedValue(user);
+    userRepo.update.mockResolvedValue(user);
+    passwordHasher.compare.mockResolvedValue(true);
+    authToken.generateTokenPair.mockResolvedValue({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    });
+
+    const result = await useCase.execute({
+      email: 'user@example.com',
+      code: 'AB12CD',
+    });
+
+    expect(result.accessToken).toBe('access-token');
+    expect(userRepo.update).toHaveBeenCalledOnce();
+  });
+
   it('prevents resend while cooldown is active', async () => {
     const userRepo = createMockUserRepository();
     const passwordHasher = createMockPasswordHasher();
@@ -437,6 +481,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new ResendVerificationCodeUseCase(userRepo, issueVerificationCode);
     const user = createUnverifiedUser();
@@ -457,6 +502,7 @@ describe('Email verification auth use-cases', () => {
       passwordHasher,
       mockSender,
       verificationConfig,
+      clock,
     );
     const useCase = new ResendVerificationCodeUseCase(userRepo, issueVerificationCode);
 

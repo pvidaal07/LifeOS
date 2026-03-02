@@ -14,6 +14,7 @@ import {
   PASSWORD_HASHER,
   AUTH_TOKEN,
   EMAIL_VERIFICATION_SENDER,
+  SYSTEM_CLOCK,
 } from '../persistence/injection-tokens';
 
 // Repository implementations
@@ -30,6 +31,7 @@ import {
   JwtAuthTokenService,
   EmailVerificationSenderService,
   SmtpEmailVerificationSenderService,
+  SystemClockService,
   JwtStrategy,
   JwtRefreshStrategy,
 } from '../auth';
@@ -57,6 +59,7 @@ import { UserInitializationService } from '../../domain/user';
 // Application ports (types only — for factory signatures)
 import type { UserRepositoryPort, UserSettingsRepositoryPort, UserModuleRepositoryPort } from '../../application/ports/user-repository.port';
 import type { PasswordHasherPort, AuthTokenPort } from '../../application/ports/auth.port';
+import type { ClockPort } from '../../application/ports/clock.port';
 import type {
   EmailVerificationSenderPort,
   EmailVerificationConfig,
@@ -89,6 +92,7 @@ import type {
     // ── Auth adapter bindings ────────────────────────
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasherService },
     { provide: AUTH_TOKEN, useClass: JwtAuthTokenService },
+    { provide: SYSTEM_CLOCK, useClass: SystemClockService },
     EmailVerificationSenderService,
     SmtpEmailVerificationSenderService,
     {
@@ -116,13 +120,15 @@ import type {
         passwordHasher: PasswordHasherPort,
         verificationSender: EmailVerificationSenderPort,
         config: ConfigService,
+        clock: ClockPort,
       ) =>
         new IssueVerificationCodeService(
           passwordHasher,
           verificationSender,
           getEmailVerificationConfig(config),
+          clock,
         ),
-      inject: [PASSWORD_HASHER, EMAIL_VERIFICATION_SENDER, ConfigService],
+      inject: [PASSWORD_HASHER, EMAIL_VERIFICATION_SENDER, ConfigService, SYSTEM_CLOCK],
     },
     {
       provide: USE_CASE_TOKENS.RegisterUseCase,
@@ -157,6 +163,7 @@ import type {
         authToken: AuthTokenPort,
         issueVerificationCode: IssueVerificationCodeService,
         config: ConfigService,
+        clock: ClockPort,
       ) =>
         new LoginUseCase(
           userRepo,
@@ -164,6 +171,7 @@ import type {
           authToken,
           issueVerificationCode,
           getEmailVerificationConfig(config),
+          clock,
         ),
       inject: [
         USER_REPOSITORY,
@@ -171,6 +179,7 @@ import type {
         AUTH_TOKEN,
         IssueVerificationCodeService,
         ConfigService,
+        SYSTEM_CLOCK,
       ],
     },
     {
@@ -180,14 +189,16 @@ import type {
         passwordHasher: PasswordHasherPort,
         authToken: AuthTokenPort,
         config: ConfigService,
+        clock: ClockPort,
       ) =>
         new VerifyEmailUseCase(
           userRepo,
           passwordHasher,
           authToken,
           getEmailVerificationConfig(config),
+          clock,
         ),
-      inject: [USER_REPOSITORY, PASSWORD_HASHER, AUTH_TOKEN, ConfigService],
+      inject: [USER_REPOSITORY, PASSWORD_HASHER, AUTH_TOKEN, ConfigService, SYSTEM_CLOCK],
     },
     {
       provide: USE_CASE_TOKENS.ResendVerificationCodeUseCase,

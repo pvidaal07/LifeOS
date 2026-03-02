@@ -1,6 +1,7 @@
 import { UserRepositoryPort } from '../../ports/user-repository.port';
 import { PasswordHasherPort, AuthTokenPort, TokenPair } from '../../ports/auth.port';
 import { EmailVerificationConfig } from '../../ports/email-verification.port';
+import type { ClockPort } from '../../ports/clock.port';
 import {
   VerificationCodeInvalidError,
   VerificationCodeExpiredError,
@@ -27,6 +28,7 @@ export class VerifyEmailUseCase {
     private readonly passwordHasher: PasswordHasherPort,
     private readonly authToken: AuthTokenPort,
     private readonly verificationConfig: EmailVerificationConfig,
+    private readonly clock: ClockPort,
   ) {}
 
   async execute(input: VerifyEmailInput): Promise<VerifyEmailOutput> {
@@ -56,7 +58,7 @@ export class VerifyEmailUseCase {
       throw new VerificationCodeExpiredError();
     }
 
-    if (user.isVerificationCodeExpired()) {
+    if (user.isVerificationCodeExpired(this.clock.now())) {
       throw new VerificationCodeExpiredError();
     }
 

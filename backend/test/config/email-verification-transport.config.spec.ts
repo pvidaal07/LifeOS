@@ -87,4 +87,34 @@ describe('email verification transport configuration', () => {
     expect(config.emailVerification.smtp.connectionTimeoutMs).toBe(12_000);
     expect(config.emailVerification.smtp.sendTimeoutMs).toBe(9_000);
   });
+
+  it('provides default template branding values', () => {
+    process.env = {
+      ...ORIGINAL_ENV,
+      NODE_ENV: 'development',
+      CORS_ORIGIN: 'https://frontend.lifeos.test',
+    };
+
+    const config = configuration();
+
+    expect(config.emailVerification.template.brandName).toBe('LifeOS');
+    expect(config.emailVerification.template.appUrl).toBe('https://frontend.lifeos.test');
+    expect(config.emailVerification.template.supportEmail).toBeUndefined();
+  });
+
+  it('uses explicit template branding environment values', () => {
+    process.env = {
+      ...ORIGINAL_ENV,
+      NODE_ENV: 'development',
+      EMAIL_BRAND_NAME: 'LifeOS Cloud',
+      EMAIL_APP_URL: 'https://cloud.lifeos.test',
+      EMAIL_SUPPORT_EMAIL: 'help@lifeos.test',
+    };
+
+    const config = configuration();
+
+    expect(config.emailVerification.template.brandName).toBe('LifeOS Cloud');
+    expect(config.emailVerification.template.appUrl).toBe('https://cloud.lifeos.test');
+    expect(config.emailVerification.template.supportEmail).toBe('help@lifeos.test');
+  });
 });

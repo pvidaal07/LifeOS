@@ -4,6 +4,7 @@ import {
   EmailVerificationConfig,
   EmailVerificationSenderPort,
 } from '../../ports/email-verification.port';
+import type { ClockPort } from '../../ports/clock.port';
 import { generateVerificationCode } from './email-verification.utils';
 
 export type VerificationDeliveryMode = 'strict' | 'best-effort';
@@ -14,7 +15,6 @@ export interface IssueVerificationCodeInput {
   persistVerificationState: (user: User) => Promise<void>;
   incrementResendCount?: boolean;
   enforceCooldown?: boolean;
-  now?: Date;
 }
 
 export interface IssueVerificationCodeOutput {
@@ -29,10 +29,11 @@ export class IssueVerificationCodeService {
     private readonly passwordHasher: PasswordHasherPort,
     private readonly verificationSender: EmailVerificationSenderPort,
     private readonly verificationConfig: EmailVerificationConfig,
+    private readonly clock: ClockPort,
   ) {}
 
   async execute(input: IssueVerificationCodeInput): Promise<IssueVerificationCodeOutput> {
-    const issuedAt = input.now ?? new Date();
+    const issuedAt = this.clock.now();
 
     if (input.enforceCooldown) {
       const resendStatus = input.user.canResendVerificationCode(

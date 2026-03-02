@@ -17,6 +17,9 @@ describe('SmtpEmailVerificationSenderService', () => {
     'emailVerification.smtp.secure': undefined,
     'emailVerification.smtp.connectionTimeoutMs': 10_000,
     'emailVerification.smtp.sendTimeoutMs': 8_000,
+    'emailVerification.template.brandName': 'LifeOS',
+    'emailVerification.template.appUrl': 'https://app.lifeos.test',
+    'emailVerification.template.supportEmail': 'support@lifeos.test',
   } as const;
 
   beforeEach(() => {
@@ -48,6 +51,15 @@ describe('SmtpEmailVerificationSenderService', () => {
         from: 'no-reply@example.com',
         to: 'user@example.com',
         subject: 'LifeOS - Codigo de verificacion',
+        text: expect.stringContaining('A1B2C3'),
+        html: expect.stringContaining('<html'),
+      }),
+    );
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining('https://app.lifeos.test'),
+        html: expect.stringContaining('support@lifeos.test'),
       }),
     );
   });

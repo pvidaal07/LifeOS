@@ -196,7 +196,7 @@ export class User extends AggregateRoot {
     if (!this._verificationCodeExpiresAt) {
       return true;
     }
-    return this._verificationCodeExpiresAt.getTime() < now.getTime();
+    return this._verificationCodeExpiresAt.getTime() <= now.getTime();
   }
 
   toJSON() {

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, type Transporter } from 'nodemailer';
 import { EmailVerificationSenderPort } from '../../../application/ports/email-verification.port';
+import { buildEmailVerificationTemplate } from './email-verification-template.builder';
 
 interface SmtpEmailConfig {
   host: string;
@@ -12,15 +13,20 @@ interface SmtpEmailConfig {
   secure?: boolean;
   connectionTimeoutMs: number;
   sendTimeoutMs: number;
+  brandName: string;
+  appUrl?: string;
+  supportEmail?: string;
 }
 
 @Injectable()
 export class SmtpEmailVerificationSenderService implements EmailVerificationSenderPort {
   private readonly transporter: Transporter;
   private readonly fromAddress: string;
+  private readonly smtpConfig: SmtpEmailConfig;
 
   constructor(private readonly configService: ConfigService) {
     const smtpConfig = this.getSmtpConfig();
+    this.smtpConfig = smtpConfig;
     const secure = smtpConfig.secure ?? smtpConfig.port === 465;
 
     this.transporter = createTransport({
@@ -43,12 +49,22 @@ export class SmtpEmailVerificationSenderService implements EmailVerificationSend
     code: string;
     expiresInMinutes: number;
   }): Promise<void> {
+    const template = buildEmailVerificationTemplate({
+      recipientName: input.name,
+      code: input.code,
+      expiresInMinutes: input.expiresInMinutes,
+      brandName: this.smtpConfig.brandName,
+      appUrl: this.smtpConfig.appUrl,
+      supportEmail: this.smtpConfig.supportEmail,
+    });
+
     try {
       await this.transporter.sendMail({
         from: this.fromAddress,
         to: input.toEmail,
-        subject: 'LifeOS - Código de verificación',
-        text: `Hola ${input.name},\n\nTu código de verificación es: ${input.code}\n\nEste código expira en ${input.expiresInMinutes} minutos.`,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
       });
     } catch (error) {
       const deliveryError = new Error('SMTP email verification delivery failed');
@@ -67,6 +83,9 @@ export class SmtpEmailVerificationSenderService implements EmailVerificationSend
       secure: this.configService.get<boolean | undefined>('emailVerification.smtp.secure'),
       connectionTimeoutMs: this.getRequiredNumber('emailVerification.smtp.connectionTimeoutMs'),
       sendTimeoutMs: this.getRequiredNumber('emailVerification.smtp.sendTimeoutMs'),
+      brandName: this.configService.get<string>('emailVerification.template.brandName', 'LifeOS'),
+      appUrl: this.configService.get<string | undefined>('emailVerification.template.appUrl'),
+      supportEmail: this.configService.get<string | undefined>('emailVerification.template.supportEmail'),
     };
   }
 

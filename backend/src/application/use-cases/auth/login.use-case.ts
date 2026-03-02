@@ -3,6 +3,7 @@ import { EmailNotVerifiedError } from '../../../domain/user';
 import { UserRepositoryPort } from '../../ports/user-repository.port';
 import { PasswordHasherPort, AuthTokenPort, TokenPair } from '../../ports/auth.port';
 import { EmailVerificationConfig } from '../../ports/email-verification.port';
+import type { ClockPort } from '../../ports/clock.port';
 import { maskEmail } from './email-verification.utils';
 import { IssueVerificationCodeService } from './issue-verification-code.service';
 
@@ -28,6 +29,7 @@ export class LoginUseCase {
     private readonly authToken: AuthTokenPort,
     private readonly issueVerificationCode: IssueVerificationCodeService,
     private readonly verificationConfig: EmailVerificationConfig,
+    private readonly clock: ClockPort,
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -49,8 +51,10 @@ export class LoginUseCase {
     }
 
     if (!user.emailVerified) {
+      const now = this.clock.now();
       const resendStatus = user.canResendVerificationCode(
         this.verificationConfig.resendCooldownSeconds,
+        now,
       );
 
       let cooldownSeconds = resendStatus.remainingSeconds;

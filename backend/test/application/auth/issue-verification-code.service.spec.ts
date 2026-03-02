@@ -21,6 +21,10 @@ describe('IssueVerificationCodeService', () => {
     sendVerificationCode: vi.fn(),
   };
 
+  const clock = {
+    now: vi.fn(() => new Date()),
+  };
+
   const createUser = () =>
     User.create({
       id: 'user-1',
@@ -32,10 +36,11 @@ describe('IssueVerificationCodeService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    clock.now.mockImplementation(() => new Date());
   });
 
   it('issues and dispatches verification in strict mode', async () => {
-    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig);
+    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig, clock);
     const user = createUser();
     const persistVerificationState = vi.fn().mockResolvedValue(undefined);
 
@@ -57,7 +62,7 @@ describe('IssueVerificationCodeService', () => {
   });
 
   it('keeps flow alive in best-effort mode when sender fails', async () => {
-    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig);
+    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig, clock);
     const user = createUser();
     const persistVerificationState = vi.fn().mockResolvedValue(undefined);
 
@@ -78,7 +83,7 @@ describe('IssueVerificationCodeService', () => {
   });
 
   it('throws delivery error in strict mode when sender fails', async () => {
-    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig);
+    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig, clock);
     const user = createUser();
     const persistVerificationState = vi.fn().mockResolvedValue(undefined);
 
@@ -100,8 +105,9 @@ describe('IssueVerificationCodeService', () => {
     vi.useFakeTimers();
     const now = new Date('2026-02-01T10:00:00.000Z');
     vi.setSystemTime(now);
+    clock.now.mockReturnValue(now);
 
-    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig);
+    const service = new IssueVerificationCodeService(passwordHasher, sender, verificationConfig, clock);
     const user = createUser();
     user.setVerificationCode({
       codeHash: 'old-hash',
@@ -115,7 +121,6 @@ describe('IssueVerificationCodeService', () => {
         mode: 'strict',
         enforceCooldown: true,
         persistVerificationState: vi.fn(),
-        now,
       }),
     ).rejects.toBeInstanceOf(VerificationCodeCooldownError);
 

@@ -359,5 +359,30 @@ describe('User', () => {
       expect(allowed.allowed).toBe(true);
       expect(allowed.remainingSeconds).toBe(0);
     });
+
+    it('should treat verification as expired at and after expiration instant', () => {
+      const now = new Date('2026-02-01T10:00:00.000Z');
+      const expiresAt = new Date(now.getTime() + 30_000);
+      const user = User.fromPersistence({
+        id: 'user-1',
+        email: 'john@example.com',
+        passwordHash: 'hash',
+        name: 'John',
+        avatarUrl: null,
+        isActive: true,
+        emailVerified: false,
+        verificationCodeHash: 'verification-hash',
+        verificationCodeExpiresAt: expiresAt,
+        verificationAttempts: 0,
+        verificationLastSentAt: now,
+        verificationResendCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      expect(user.isVerificationCodeExpired(new Date(expiresAt.getTime() - 1))).toBe(false);
+      expect(user.isVerificationCodeExpired(expiresAt)).toBe(true);
+      expect(user.isVerificationCodeExpired(new Date(expiresAt.getTime() + 1))).toBe(true);
+    });
   });
 });

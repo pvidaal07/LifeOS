@@ -23,6 +23,7 @@ export const USER_MODULE_REPOSITORY = 'UserModuleRepositoryPort';
 export const PASSWORD_HASHER = 'PasswordHasherPort';
 export const AUTH_TOKEN = 'AuthTokenPort';
 export const EMAIL_VERIFICATION_SENDER = 'EmailVerificationSenderPort';
+export const SYSTEM_CLOCK = 'ClockPort';
 
 // ── Inicio ───────────────────────────────────
 export const DASHBOARD_REPOSITORY = 'DashboardRepositoryPort';

@@ -8,3 +8,4 @@ export * from './user-repository.port';
 export * from './auth.port';
 export * from './email-verification.port';
 export * from './dashboard-repository.port';
+export * from './clock.port';

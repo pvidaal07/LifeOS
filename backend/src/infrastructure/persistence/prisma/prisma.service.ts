@@ -2,6 +2,10 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import {
+  SET_UTC_TIMEZONE_SQL,
+  withUtcSessionTimezone,
+} from './prisma-timezone';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -17,7 +21,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Create a pg.Pool with resilient connection settings
     const pool = new Pool({
-      connectionString,
+      connectionString: withUtcSessionTimezone(connectionString),
       max: 10,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 5_000,
@@ -38,6 +42,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+    await this.enforceUtcTimezone();
     this.logger.log('Connected to database');
   }
 
@@ -78,6 +83,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
 
       await this.$connect();
+      await this.enforceUtcTimezone();
       this.logger.log('Prisma reconnected successfully');
     })().finally(() => {
       this.reconnectInFlight = null;
@@ -97,5 +103,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       await this.reconnect();
       return operation();
     }
+  }
+
+  private async enforceUtcTimezone(): Promise<void> {
+    await this.$executeRawUnsafe(SET_UTC_TIMEZONE_SQL);
   }
 }

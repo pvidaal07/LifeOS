@@ -616,7 +616,7 @@ export function AccountSettingsPage() {
                 >
                   {updateReviewSettingsMutation.isPending
                     ? 'Guardando...'
-                    : 'Guardar configuracion de repasos'}
+                    : 'Guardar configuración de repasos'}
                 </Button>
               </div>
             </>

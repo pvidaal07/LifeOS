@@ -93,6 +93,11 @@ export default () => {
       resendCooldownSeconds: parseNumber('EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS', 60),
       maxAttempts: parseNumber('EMAIL_VERIFICATION_MAX_ATTEMPTS', 5),
       transport: emailTransport,
+      template: {
+        brandName: getEnv('EMAIL_BRAND_NAME') || 'LifeOS',
+        appUrl: getEnv('EMAIL_APP_URL') || process.env.CORS_ORIGIN || 'http://localhost:5173',
+        supportEmail: getEnv('EMAIL_SUPPORT_EMAIL'),
+      },
       smtp: {
         host: getEnv('SMTP_HOST'),
         port: parseNumber('SMTP_PORT', 587),
