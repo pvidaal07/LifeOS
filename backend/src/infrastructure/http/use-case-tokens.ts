@@ -42,6 +42,7 @@ export const USE_CASE_TOKENS = {
 
   // ── Sessions ──────────────────────────────────
   CreateSessionUseCase: 'CreateSessionUseCase',
+  EditHistoricalSessionUseCase: 'EditHistoricalSessionUseCase',
   GetTopicSessionsUseCase: 'GetTopicSessionsUseCase',
   GetRecentSessionsUseCase: 'GetRecentSessionsUseCase',
 
@@ -49,6 +50,7 @@ export const USE_CASE_TOKENS = {
   GetPendingReviewsUseCase: 'GetPendingReviewsUseCase',
   GetUpcomingReviewsUseCase: 'GetUpcomingReviewsUseCase',
   CompleteReviewUseCase: 'CompleteReviewUseCase',
+  EditHistoricalReviewUseCase: 'EditHistoricalReviewUseCase',
   SkipReviewUseCase: 'SkipReviewUseCase',
   RecalculateUrgencyUseCase: 'RecalculateUrgencyUseCase',
   GetReviewSettingsUseCase: 'GetReviewSettingsUseCase',

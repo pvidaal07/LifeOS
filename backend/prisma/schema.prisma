@@ -139,6 +139,7 @@ model StudySession {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
+  @@index([userId, topicId, studiedAt, createdAt, id])
   @@map("study_sessions")
 }
 
@@ -163,6 +164,7 @@ model ReviewSchedule {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, topicId, reviewNumber])
   @@index([userId, status, scheduledDate])
   @@map("review_schedule")
 }
