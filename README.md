@@ -1,5 +1,9 @@
 # LifeOS
 
+<p align="center">
+  <img src="assets/banner-presentacion.png" alt="Banner del proyecto" width="900">
+</p>
+
 <div align="center">
 
 ### Tu sistema operativo personal para estudiar y vivir con claridad
@@ -10,13 +14,12 @@ _Un solo lugar para planificar, ejecutar y mejorar tu progreso real._
 
 ---
 
-## La idea detras de LifeOS
+## La idea detrás de LifeOS
 
-La mayoria de apps personales se quedan en listas o notas sueltas. LifeOS nace para unir **planificacion + accion + feedback** en un mismo flujo.
+La mayoría de apps personales se quedan en listas o notas sueltas. LifeOS nace para unir **planificación + acción + feedback** en un mismo flujo.
 
-En vez de guardar informacion y olvidarla, LifeOS convierte objetivos en trabajo diario medible:
-
-- Definir que quieres conseguir
+En vez de guardar información y olvidarla, LifeOS convierte objetivos en trabajo diario medible:
+- Definir qué quieres conseguir
 - Dividirlo en unidades claras
 - Registrar sesiones reales de trabajo
 - Reforzar lo aprendido con repasos espaciados
@@ -37,34 +40,33 @@ Sensacion de "no avanzo"      Progreso visible y medible
 
 ---
 
-## MVP actual: modulo de Estudios
+## MVP actual: módulo de Estudios
 
-Hoy LifeOS esta centrado en un MVP funcional de estudio, con este recorrido:
+Hoy LifeOS está centrado en un MVP funcional de estudio, con este recorrido:
 
 `Plan -> Asignaturas -> Temas -> Sesiones -> Repasos`
 
 Incluye:
 
-- Gestion de planes, asignaturas y temas
+- Gestión de planes, asignaturas y temas
 - Registro de sesiones de estudio
 - Sistema de repaso espaciado
-- Dashboard diario con foco en "que toca hoy"
-- Autenticacion por usuario (cada cuenta solo ve sus datos)
-
+- Dashboard diario con foco en "qué toca hoy"
+- Autenticación por usuario (cada cuenta solo ve sus datos)
 ---
 
-## Filosofia del producto
+## Filosofía del producto
 
-- **Simple por fuera, potente por dentro**: interfaz clara con reglas solidas
-- **Progreso real**: menos ruido, mas ejecucion
-- **Modular**: Estudios es el primer modulo; el sistema crece hacia otras areas
+- **Simple por fuera, potente por dentro**: interfaz clara con reglas sólidas
+- **Progreso real**: menos ruido, más ejecución
+- **Modular**: Estudios es el primer módulo; el sistema crece hacia otras áreas
 - **Personal**: cada dato pertenece al usuario autenticado
 
 ---
 
-## Stack tecnico
+## Stack técnico
 
-| Capa | Tecnologia |
+| Capa | Tecnología |
 |------|------------|
 | Frontend | React + Vite + TypeScript |
 | UI | Tailwind CSS + shadcn/ui |
@@ -84,15 +86,15 @@ LifeOS/
 |- backend/    API y reglas de negocio
 |- frontend/   App web
 |- db/         Configuración de base de datos y entorno
-|- docs/       Vision de producto y alcance
-|- skills/     Reglas y guias de desarrollo asistido por IA
+|- docs/       Visión de producto y alcance
+|- skills/     Reglas y guías de desarrollo asistido por IA
 ```
 
 ---
 
 ## Para levantar el proyecto en local
 
-Toda la guia de instalacion y arranque se movio a:
+Toda la guía de instalación y arranque se movió a:
 
 - `SETUP-INFO.md`
 
@@ -100,18 +102,17 @@ Si quieres clonar, configurar variables, levantar Docker y arrancar frontend/bac
 
 ---
 
-## Roadmap (vision)
-
-- Modulo de estudios mas completo (analitica y mejores flujos)
-- Expansion a otras areas personales (salud, habitos, productividad)
-- Mejoras de experiencia diaria y personalizacion
+## Roadmap (visión)
+- Módulo de estudios más completo (analítica y mejores flujos)
+- Expansión a otras áreas personales (salud, hábitos, productividad)
+- Mejoras de experiencia diaria y personalización
 - Despliegue self-host para uso personal estable
 
 ---
 
 ## Estado del proyecto
 
-LifeOS esta en evolucion activa. El objetivo actual es consolidar un MVP de estudio realmente util antes de ampliar modulos.
+LifeOS está en evolución activa. El objetivo actual es consolidar un MVP de estudio realmente útil antes de ampliar módulos.
 
 Si quieres contribuir, revisar ideas o construir encima del proyecto, bienvenido.
 

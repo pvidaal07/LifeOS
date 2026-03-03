@@ -10,6 +10,9 @@ import type {
   DashboardData,
   ApiResponse,
   ReviewResult,
+  EditSessionHistoryRequest,
+  EditReviewHistoryRequest,
+  HistoryRecomputeSummary,
 } from '../types';
 
 export const studiesApi = {
@@ -74,6 +77,12 @@ export const studiesApi = {
   getRecentSessions: (limit: number = 10) =>
     apiClient.get<ApiResponse<StudySession[]>>(`/studies/sessions/recent?limit=${limit}`),
 
+  editSessionHistory: (sessionId: string, payload: EditSessionHistoryRequest) =>
+    apiClient.patch<ApiResponse<HistoryRecomputeSummary>>(
+      `/studies/sessions/${sessionId}/history`,
+      payload,
+    ),
+
   // ─── Repasos ───────────────────────────────
   getPendingReviews: () =>
     apiClient.get<ApiResponse<ReviewSchedule[]>>('/studies/reviews/pending'),
@@ -91,6 +100,12 @@ export const studiesApi = {
 
   skipReview: (id: string) =>
     apiClient.post<ApiResponse<ReviewSchedule>>(`/studies/reviews/${id}/skip`),
+
+  editReviewHistory: (reviewId: string, payload: EditReviewHistoryRequest) =>
+    apiClient.patch<ApiResponse<HistoryRecomputeSummary>>(
+      `/studies/reviews/${reviewId}/history`,
+      payload,
+    ),
 
   getReviewSettings: () =>
     apiClient.get<ApiResponse<ReviewSettings>>('/studies/reviews/settings'),

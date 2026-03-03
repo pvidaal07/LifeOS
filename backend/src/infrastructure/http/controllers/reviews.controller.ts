@@ -19,8 +19,13 @@ import { RecalculateUrgencyUseCase } from '../../../application/use-cases/review
 import { GetUpcomingReviewsUseCase } from '../../../application/use-cases/reviews';
 import { GetReviewSettingsUseCase } from '../../../application/use-cases/reviews';
 import { UpdateReviewSettingsUseCase } from '../../../application/use-cases/reviews';
+import { EditHistoricalReviewUseCase } from '../../../application/use-cases/reviews';
 import { JwtAuthGuard, CurrentUser } from '../../auth';
-import { CompleteReviewDto, UpdateReviewSettingsDto } from '../dto/reviews';
+import {
+  CompleteReviewDto,
+  EditHistoricalReviewDto,
+  UpdateReviewSettingsDto,
+} from '../dto/reviews';
 import { ReviewScheduleWithTopic } from '../../../application/ports/review-repository.port';
 import { ReviewSchedule, ReviewSettings } from '../../../domain/review';
 
@@ -44,6 +49,8 @@ export class ReviewsController {
     private readonly getReviewSettingsUseCase: GetReviewSettingsUseCase,
     @Inject(USE_CASE_TOKENS.UpdateReviewSettingsUseCase)
     private readonly updateReviewSettingsUseCase: UpdateReviewSettingsUseCase,
+    @Inject(USE_CASE_TOKENS.EditHistoricalReviewUseCase)
+    private readonly editHistoricalReviewUseCase: EditHistoricalReviewUseCase,
   ) {}
 
   @Get('pending')
@@ -113,6 +120,34 @@ export class ReviewsController {
     const rescheduled = await this.skipReviewUseCase.execute(id, userId);
     // Old API returned the rescheduled review as a flat Prisma record
     return this.mapReviewFlat(rescheduled);
+  }
+
+  @Patch(':id/history')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Editar historial de un repaso completado y recomputar su cadena' })
+  async editHistory(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: EditHistoricalReviewDto,
+  ) {
+    const result = await this.editHistoricalReviewUseCase.execute({
+      reviewId: id,
+      userId,
+      completedDate: dto.completedDate ? new Date(dto.completedDate) : undefined,
+      result: dto.result,
+      durationMinutes: dto.durationMinutes
+        ?? (dto.studyHours !== undefined ? Math.round(dto.studyHours * 60) : undefined),
+      qualityRating: dto.qualityRating,
+    });
+
+    return {
+      reviewId: result.reviewId,
+      topicId: result.topicId,
+      anchorReviewNumber: result.anchorReviewNumber,
+      recomputedReviewCount: result.recomputedReviewCount,
+      systemMastery: result.systemMastery,
+      topicStatus: result.topicStatus,
+    };
   }
 
   @Post('recalculate-urgency')

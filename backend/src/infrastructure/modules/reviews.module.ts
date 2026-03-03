@@ -28,6 +28,7 @@ import {
   GetPendingReviewsUseCase,
   GetUpcomingReviewsUseCase,
   CompleteReviewUseCase,
+  EditHistoricalReviewUseCase,
   SkipReviewUseCase,
   RecalculateUrgencyUseCase,
   GetReviewSettingsUseCase,
@@ -72,6 +73,15 @@ import type { SessionRepositoryPort } from '../../application/ports/session-repo
         sessionRepo: SessionRepositoryPort,
       ) => new CompleteReviewUseCase(reviewRepo, reviewSettingsRepo, topicRepo, sessionRepo),
       inject: [REVIEW_REPOSITORY, REVIEW_SETTINGS_REPOSITORY, TOPIC_REPOSITORY, SESSION_REPOSITORY],
+    },
+    {
+      provide: USE_CASE_TOKENS.EditHistoricalReviewUseCase,
+      useFactory: (
+        reviewRepo: ReviewRepositoryPort,
+        reviewSettingsRepo: ReviewSettingsRepositoryPort,
+        topicRepo: TopicRepositoryPort,
+      ) => new EditHistoricalReviewUseCase(reviewRepo, reviewSettingsRepo, topicRepo),
+      inject: [REVIEW_REPOSITORY, REVIEW_SETTINGS_REPOSITORY, TOPIC_REPOSITORY],
     },
     {
       provide: USE_CASE_TOKENS.SkipReviewUseCase,

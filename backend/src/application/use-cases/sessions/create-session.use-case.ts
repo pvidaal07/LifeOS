@@ -73,7 +73,7 @@ export class CreateSessionUseCase {
       // Schedule first review
       const settings = await this.reviewSettingsRepo.findByUserId(userId);
       const firstInterval = settings?.getFirstInterval() ?? 1;
-      const scheduledDate = new Date();
+      const scheduledDate = new Date(saved.session.studiedAt);
       scheduledDate.setDate(scheduledDate.getDate() + firstInterval);
 
       const review = ReviewSchedule.scheduleFirst({

@@ -5,8 +5,10 @@ import {
   SessionRepositoryPort,
   StudySessionWithDetails,
   WeekStats,
+  SessionEditAndSuffixRecomputeParams,
 } from '../../../application/ports/session-repository.port';
 import { StudySession } from '../../../domain/study';
+import { ReviewScheduleMapper } from '../mappers/review-schedule.mapper';
 
 @Injectable()
 export class SessionPrismaRepository implements SessionRepositoryPort {
@@ -33,6 +35,14 @@ export class SessionPrismaRepository implements SessionRepositoryPort {
     };
   }
 
+  async findByIdForOwner(id: string, userId: string): Promise<StudySession | null> {
+    const session = await this.prisma.studySession.findFirst({
+      where: { id, userId },
+    });
+
+    return session ? StudySessionMapper.toDomain(session) : null;
+  }
+
   async findByTopicId(
     topicId: string,
     userId: string,
@@ -55,6 +65,15 @@ export class SessionPrismaRepository implements SessionRepositoryPort {
       subjectName: s.topic.subject.name,
       subjectColor: s.topic.subject.color,
     }));
+  }
+
+  async findTimelineByTopicId(topicId: string, userId: string): Promise<StudySession[]> {
+    const sessions = await this.prisma.studySession.findMany({
+      where: { topicId, userId },
+      orderBy: [{ studiedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    });
+
+    return sessions.map(StudySessionMapper.toDomain);
   }
 
   async findRecentByUserId(
@@ -119,5 +138,44 @@ export class SessionPrismaRepository implements SessionRepositoryPort {
     limit: number,
   ): Promise<StudySessionWithDetails[]> {
     return this.findRecentByUserId(userId, limit);
+  }
+
+  async editSessionAndReplaceTopicSuffix(
+    params: SessionEditAndSuffixRecomputeParams,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const updateResult = await tx.studySession.updateMany({
+        where: {
+          id: params.sessionId,
+          userId: params.userId,
+          topicId: params.topicId,
+        },
+        data: {
+          studiedAt: params.session.studiedAt,
+          durationMinutes: params.session.durationMinutes,
+          qualityRating: params.session.qualityRating,
+        },
+      });
+
+      if (updateResult.count === 0) {
+        return false;
+      }
+
+      await tx.reviewSchedule.deleteMany({
+        where: {
+          userId: params.userId,
+          topicId: params.topicId,
+          reviewNumber: { gte: params.anchorReviewNumber },
+        },
+      });
+
+      if (params.reviews.length > 0) {
+        await tx.reviewSchedule.createMany({
+          data: params.reviews.map((review) => ReviewScheduleMapper.toPersistence(review)),
+        });
+      }
+
+      return true;
+    });
   }
 }

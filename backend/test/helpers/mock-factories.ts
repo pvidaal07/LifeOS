@@ -40,9 +40,13 @@ export function createMockReviewRepository(): {
     findPendingByUserId: vi.fn(),
     findUpcomingByUserId: vi.fn(),
     findPendingById: vi.fn(),
+    findByIdForOwner: vi.fn(),
     findPendingByTopicId: vi.fn(),
+    findTimelineByTopicId: vi.fn(),
     findCompletedByTopicId: vi.fn(),
     findAllPendingByUserId: vi.fn(),
+    replaceTopicSuffix: vi.fn(),
+    editReviewAndReplaceTopicSuffix: vi.fn(),
     save: vi.fn(),
     updateMany: vi.fn(),
   };
@@ -68,11 +72,14 @@ export function createMockSessionRepository(): {
 } {
   return {
     save: vi.fn(),
+    findByIdForOwner: vi.fn(),
     findByTopicId: vi.fn(),
+    findTimelineByTopicId: vi.fn(),
     findRecentByUserId: vi.fn(),
     countTodayByUserId: vi.fn(),
     getWeekStats: vi.fn(),
     findRecentWithDetails: vi.fn(),
+    editSessionAndReplaceTopicSuffix: vi.fn(),
   };
 }
 
