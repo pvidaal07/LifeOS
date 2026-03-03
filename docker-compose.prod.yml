@@ -28,6 +28,8 @@ services:
       dockerfile: Dockerfile
     container_name: lifeos-api
     restart: always
+    env_file:
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy
