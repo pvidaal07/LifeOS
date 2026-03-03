@@ -50,7 +50,7 @@ describe('VerifyEmailPage', () => {
   it('submits uppercase code with the pending verification email', () => {
     render(<VerifyEmailPage />);
 
-    const input = screen.getByLabelText('Codigo de verificacion');
+    const input = screen.getByLabelText('Código de verificación');
     fireEvent.change(input, { target: { value: 'ab12cd' } });
     fireEvent.click(screen.getByRole('button', { name: 'Verificar y continuar' }));
 

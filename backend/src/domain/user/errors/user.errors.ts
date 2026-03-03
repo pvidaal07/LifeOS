@@ -30,7 +30,7 @@ export class EmailNotVerifiedError extends DomainError {
 
 export class VerificationCodeInvalidError extends DomainError {
   constructor() {
-    super('VERIFICATION_CODE_INVALID', 'El codigo de verificacion es invalido', {
+    super('VERIFICATION_CODE_INVALID', 'El código de verificación es inválido', {
       httpStatus: 400,
     });
   }
@@ -38,7 +38,7 @@ export class VerificationCodeInvalidError extends DomainError {
 
 export class VerificationCodeExpiredError extends DomainError {
   constructor() {
-    super('VERIFICATION_CODE_EXPIRED', 'El codigo de verificacion ha expirado', {
+    super('VERIFICATION_CODE_EXPIRED', 'El código de verificación ha expirado', {
       httpStatus: 400,
       details: {
         canResend: true,
@@ -49,7 +49,7 @@ export class VerificationCodeExpiredError extends DomainError {
 
 export class VerificationCodeCooldownError extends DomainError {
   constructor(remainingSeconds: number) {
-    super('VERIFICATION_CODE_COOLDOWN', 'Debes esperar antes de solicitar otro codigo', {
+    super('VERIFICATION_CODE_COOLDOWN', 'Debes esperar antes de solicitar otro código', {
       httpStatus: 429,
       details: {
         remainingSeconds,
@@ -60,7 +60,7 @@ export class VerificationCodeCooldownError extends DomainError {
 
 export class VerificationDeliveryError extends DomainError {
   constructor() {
-    super('VERIFICATION_DELIVERY_FAILED', 'No pudimos enviar el correo de verificacion. Intentalo de nuevo.', {
+    super('VERIFICATION_DELIVERY_FAILED', 'No pudimos enviar el correo de verificación. Inténtalo de nuevo.', {
       httpStatus: 503,
       details: {
         retriable: true,

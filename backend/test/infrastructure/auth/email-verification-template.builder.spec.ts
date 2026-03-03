@@ -12,7 +12,7 @@ describe('buildEmailVerificationTemplate', () => {
       supportEmail: 'help@lifeos.test',
     });
 
-    expect(result.subject).toBe('LifeOS - Codigo de verificacion');
+    expect(result.subject).toBe('LifeOS - Código de verificación');
     expect(result.text).toContain('A1B2C3');
     expect(result.text).toContain('https://app.lifeos.test');
     expect(result.html).toContain('<html lang="es">');
