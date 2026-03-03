@@ -105,13 +105,12 @@ export function SessionHistoryEditDialog({ session, pending, onClose, onSubmit }
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label htmlFor="session-history-studied-at" className="mb-1.5 block text-sm font-medium">
-              Fecha y hora
+              Fecha
             </label>
             <Input
               id="session-history-studied-at"
               autoFocus
-              type="datetime-local"
-              step={60}
+              type="date"
               value={form.studiedAt}
               onChange={(event) => setForm((prev) => ({ ...prev, studiedAt: event.target.value }))}
               hasError={Boolean(fieldErrors.studiedAt)}

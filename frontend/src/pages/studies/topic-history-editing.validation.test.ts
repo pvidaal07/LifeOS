@@ -20,7 +20,7 @@ describe('topic-history-editing.validation', () => {
         qualityRating: 4,
       }),
     ).toEqual({
-      studiedAt: toDateTimeLocal(studiedAtIso),
+      studiedAt: toDateOnlyLocal(studiedAtIso),
       durationMinutes: '45',
       qualityRating: 4,
     });
@@ -42,7 +42,7 @@ describe('topic-history-editing.validation', () => {
 
   it('passes through valid form values as API payloads without adding unsupported fields', () => {
     const sessionPayload = toSessionHistoryPayload({
-      studiedAt: '2026-02-11T10:30',
+      studiedAt: '2026-02-11',
       durationMinutes: '45',
       qualityRating: 4,
     });
@@ -55,7 +55,7 @@ describe('topic-history-editing.validation', () => {
     });
 
     expect(sessionPayload).toEqual({
-      studiedAt: new Date('2026-02-11T10:30').toISOString(),
+      studiedAt: '2026-02-11T00:00:00.000Z',
       durationMinutes: 45,
       qualityRating: 4,
     });
@@ -78,7 +78,7 @@ describe('topic-history-editing.validation', () => {
         qualityRating: 9,
       }),
     ).toEqual({
-      studiedAt: 'Ingresa una fecha y hora valida.',
+      studiedAt: 'Ingresa una fecha valida.',
       durationMinutes: 'La duracion debe estar entre 1 y 480 minutos.',
       qualityRating: 'La calidad debe estar entre 1 y 5.',
     });
@@ -107,6 +107,30 @@ describe('topic-history-editing.validation', () => {
       }),
     ).toEqual({
       studiedAt: '2026-02-11T08:30:00.000Z',
+      durationMinutes: undefined,
+      qualityRating: undefined,
+    });
+  });
+
+  it('keeps date-only roundtrip stable for 13-02 without timezone drift', () => {
+    expect(
+      getSessionHistoryEditDefaults({
+        studiedAt: '2026-02-13T23:30:00.000Z',
+      }),
+    ).toEqual({
+      studiedAt: '2026-02-13',
+      durationMinutes: '',
+      qualityRating: null,
+    });
+
+    expect(
+      toSessionHistoryPayload({
+        studiedAt: '2026-02-13',
+        durationMinutes: '',
+        qualityRating: null,
+      }),
+    ).toEqual({
+      studiedAt: '2026-02-13T00:00:00.000Z',
       durationMinutes: undefined,
       qualityRating: undefined,
     });
@@ -163,13 +187,11 @@ describe('topic-history-editing.validation', () => {
   });
 });
 
-function toDateTimeLocal(value: string): string {
+function toDateOnlyLocal(value: string): string {
   const date = new Date(value);
   const year = String(date.getFullYear());
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
 
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return `${year}-${month}-${day}`;
 }

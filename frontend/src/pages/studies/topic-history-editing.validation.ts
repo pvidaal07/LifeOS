@@ -13,6 +13,7 @@ export const HISTORY_QUALITY_MAX = 5;
 
 const ISO_DATETIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 const LOCAL_DATETIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const LOCAL_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface SessionHistoryEditFormValues {
   studiedAt: string;
@@ -41,7 +42,7 @@ export function getSessionHistoryEditDefaults(input: {
   qualityRating?: number | null;
 }): SessionHistoryEditFormValues {
   return {
-    studiedAt: toLocalDateTimeInputValue(input.studiedAt),
+    studiedAt: toLocalDateInputValue(input.studiedAt),
     durationMinutes: input.durationMinutes != null ? String(input.durationMinutes) : '',
     qualityRating: input.qualityRating ?? null,
   };
@@ -63,7 +64,7 @@ export function getReviewHistoryEditDefaults(input: {
 
 export function toSessionHistoryPayload(form: SessionHistoryEditFormValues): EditSessionHistoryRequest {
   return {
-    studiedAt: toApiDateTime(form.studiedAt),
+    studiedAt: toApiSessionDateTime(form.studiedAt),
     durationMinutes: toOptionalInteger(form.durationMinutes),
     qualityRating: form.qualityRating ?? undefined,
   };
@@ -81,8 +82,8 @@ export function toReviewHistoryPayload(form: ReviewHistoryEditFormValues): EditR
 export function validateSessionHistoryPayload(payload: EditSessionHistoryRequest): SessionFieldErrors {
   const errors: SessionFieldErrors = {};
 
-  if (payload.studiedAt !== undefined && !isIsoDateTime(payload.studiedAt)) {
-    errors.studiedAt = 'Ingresa una fecha y hora valida.';
+  if (payload.studiedAt !== undefined && !isIsoDateOrDateTime(payload.studiedAt)) {
+    errors.studiedAt = 'Ingresa una fecha valida.';
   }
 
   const durationError = validateDurationMinutes(payload.durationMinutes);
@@ -207,6 +208,55 @@ function toLocalDateTimeInputValue(value?: string | null): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
+function toLocalDateInputValue(value?: string | null): string {
+  const normalized = normalizeOptionalString(value ?? '');
+  if (!normalized) {
+    return '';
+  }
+
+  if (LOCAL_DATE_REGEX.test(normalized)) {
+    return normalized;
+  }
+
+  const isoDatePrefix = getIsoDatePrefix(normalized);
+  if (isoDatePrefix) {
+    return isoDatePrefix;
+  }
+
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return normalized;
+  }
+
+  const year = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function toApiSessionDateTime(value: string): string | undefined {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (LOCAL_DATE_REGEX.test(normalized)) {
+    return `${normalized}T00:00:00.000Z`;
+  }
+
+  return toApiDateTime(normalized);
+}
+
+function isIsoDateOrDateTime(value: string): boolean {
+  if (LOCAL_DATE_REGEX.test(value)) {
+    const utcDate = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(utcDate.getTime());
+  }
+
+  return isIsoDateTime(value);
+}
+
 function toApiDateTime(value: string): string | undefined {
   const normalized = normalizeOptionalString(value);
   if (!normalized) {
@@ -269,4 +319,9 @@ function getResponseData(error: unknown): { message?: unknown; code?: unknown } 
   }
 
   return data as { message?: unknown; code?: unknown };
+}
+
+function getIsoDatePrefix(value: string): string | null {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
 }

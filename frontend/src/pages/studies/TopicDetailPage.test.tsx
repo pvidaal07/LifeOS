@@ -102,14 +102,14 @@ describe('TopicDetailPage history editing scope', () => {
     mockStudiesApi.getTopic.mockResolvedValue(topicResponse);
   });
 
-  it('keeps session history edit entry point and dialog datetime-local input', async () => {
+  it('keeps session history edit entry point and dialog date-only input', async () => {
     renderPage();
 
     const sessionEditButton = await screen.findByRole('button', { name: /Editar sesion/i });
     fireEvent.click(sessionEditButton);
 
     expect(screen.getByRole('heading', { name: 'Editar sesión histórica' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Fecha y hora')).toHaveAttribute('type', 'datetime-local');
+    expect(screen.getByLabelText('Fecha')).toHaveAttribute('type', 'date');
   });
 
   it('does not show review history edit entry points in topic detail', async () => {
@@ -118,5 +118,45 @@ describe('TopicDetailPage history editing scope', () => {
     await screen.findByText('Historial de repasos');
 
     expect(screen.queryByRole('button', { name: /Editar repaso/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps edited date as 13-02 in session and completed review history', async () => {
+    mockStudiesApi.getTopic.mockResolvedValueOnce({
+      data: {
+        data: {
+          ...topicResponse.data.data,
+          studySessions: [
+            {
+              id: 'session-1',
+              topicId: 'topic-1',
+              sessionType: 'review',
+              durationMinutes: 20,
+              qualityRating: 4,
+              studiedAt: '2026-02-13T00:00:00.000Z',
+            },
+          ],
+          reviewSchedules: [
+            {
+              id: 'review-1',
+              topicId: 'topic-1',
+              scheduledDate: '2026-02-15T00:00:00.000Z',
+              completedDate: '2026-02-13T00:00:00.000Z',
+              status: 'completed',
+              result: 'good',
+              urgencyScore: 1,
+              intervalDays: 1,
+              reviewNumber: 1,
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage();
+
+    await screen.findByText('Repaso #1');
+
+    expect(screen.getAllByText('13/2/2026')).toHaveLength(2);
+    expect(screen.queryByText('15/2/2026')).not.toBeInTheDocument();
   });
 });

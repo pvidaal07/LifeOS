@@ -26,6 +26,26 @@ type TopicDetailData = Topic & {
   subject: any;
 };
 
+function formatHistoryDate(value: string): string {
+  const isoDateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoDateMatch) {
+    const year = Number(isoDateMatch[1]);
+    const monthIndex = Number(isoDateMatch[2]) - 1;
+    const day = Number(isoDateMatch[3]);
+    const utcDate = new Date(Date.UTC(year, monthIndex, day));
+
+    return utcDate.toLocaleDateString('es-ES', { timeZone: 'UTC' });
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString('es-ES');
+}
+
 export function TopicDetailPage() {
   const { topicId } = useParams<{ topicId: string }>();
   const queryClient = useQueryClient();
@@ -533,7 +553,7 @@ export function TopicDetailPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">
-                    {new Date(session.studiedAt).toLocaleDateString('es-ES')}
+                    {formatHistoryDate(session.studiedAt)}
                   </p>
                   {session.durationMinutes && (
                     <p className="text-xs text-muted-foreground">{session.durationMinutes} min</p>
@@ -543,7 +563,7 @@ export function TopicDetailPage() {
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 text-muted-foreground"
-                  aria-label={`Editar sesion ${new Date(session.studiedAt).toLocaleDateString('es-ES')}`}
+                  aria-label={`Editar sesion ${formatHistoryDate(session.studiedAt)}`}
                   onClick={(event) => {
                     historyTriggerRef.current = event.currentTarget;
                     setEditingSessionHistory(session);
@@ -614,7 +634,7 @@ export function TopicDetailPage() {
                   )}
                 </div>
                 <div className="text-right text-xs text-muted-foreground">
-                  <p>{new Date(review.scheduledDate).toLocaleDateString('es-ES')}</p>
+                  <p>{formatHistoryDate(review.status === 'completed' && review.completedDate ? review.completedDate : review.scheduledDate)}</p>
                   <p className="capitalize">{review.status === 'pending' ? '⏳ Pendiente' : review.status === 'completed' ? '✅ Completado' : '⏭️ Saltado'}</p>
                 </div>
                 </CardContent>
