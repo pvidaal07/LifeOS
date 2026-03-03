@@ -79,7 +79,7 @@ export function VerifyEmailPage() {
         <form onSubmit={handleVerify} className="mt-7 space-y-4">
           <div className="space-y-1.5">
             <label htmlFor="code" className="text-sm font-medium text-slate-700">
-              Codigo de verificacion
+              Código de verificación
             </label>
             <Input
               id="code"

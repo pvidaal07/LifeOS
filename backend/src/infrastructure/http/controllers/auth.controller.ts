@@ -86,7 +86,7 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verificar email con codigo' })
+  @ApiOperation({ summary: 'Verificar email con código' })
   async verifyEmail(
     @Body() dto: VerifyEmailDto,
     @Res({ passthrough: true }) res: Response,
@@ -106,7 +106,7 @@ export class AuthController {
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reenviar codigo de verificacion' })
+  @ApiOperation({ summary: 'Reenviar código de verificación' })
   async resendVerification(@Body() dto: ResendVerificationDto) {
     return this.resendVerificationCodeUseCase.execute({
       email: dto.email,
@@ -116,7 +116,7 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(JwtRefreshAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refrescar access token' })
+  @ApiOperation({ summary: 'Refrescar token de acceso' })
   async refresh(
     @CurrentUser('sub') userId: string,
     @CurrentUser('email') email: string,

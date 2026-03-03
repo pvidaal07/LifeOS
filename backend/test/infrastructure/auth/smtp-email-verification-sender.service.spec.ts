@@ -50,7 +50,7 @@ describe('SmtpEmailVerificationSenderService', () => {
       expect.objectContaining({
         from: 'no-reply@example.com',
         to: 'user@example.com',
-        subject: 'LifeOS - Codigo de verificacion',
+        subject: 'LifeOS - Código de verificación',
         text: expect.stringContaining('A1B2C3'),
         html: expect.stringContaining('<html'),
       }),
