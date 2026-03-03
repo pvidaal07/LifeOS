@@ -2,18 +2,23 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Param,
   Body,
   Query,
   UseGuards,
   Inject,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { USE_CASE_TOKENS } from '../use-case-tokens';
 import { CreateSessionUseCase } from '../../../application/use-cases/sessions';
+import { EditHistoricalSessionUseCase } from '../../../application/use-cases/sessions';
 import { GetTopicSessionsUseCase } from '../../../application/use-cases/sessions';
 import { GetRecentSessionsUseCase } from '../../../application/use-cases/sessions';
 import { JwtAuthGuard, CurrentUser } from '../../auth';
-import { CreateSessionDto } from '../dto/sessions';
+import { CreateSessionDto, EditHistoricalSessionDto } from '../dto/sessions';
 import { StudySessionWithDetails } from '../../../application/ports/session-repository.port';
 
 @ApiTags('Study Sessions')
@@ -24,6 +29,8 @@ export class SessionsController {
   constructor(
     @Inject(USE_CASE_TOKENS.CreateSessionUseCase)
     private readonly createSessionUseCase: CreateSessionUseCase,
+    @Inject(USE_CASE_TOKENS.EditHistoricalSessionUseCase)
+    private readonly editHistoricalSessionUseCase: EditHistoricalSessionUseCase,
     @Inject(USE_CASE_TOKENS.GetTopicSessionsUseCase)
     private readonly getTopicSessionsUseCase: GetTopicSessionsUseCase,
     @Inject(USE_CASE_TOKENS.GetRecentSessionsUseCase)
@@ -45,6 +52,32 @@ export class SessionsController {
       notes: dto.notes,
     });
     return this.mapSessionWithTopic(result);
+  }
+
+  @Patch(':id/history')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Editar historial de una sesion y recomputar repasos derivados' })
+  async editHistory(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: EditHistoricalSessionDto,
+  ) {
+    const result = await this.editHistoricalSessionUseCase.execute({
+      sessionId: id,
+      userId,
+      studiedAt: dto.studiedAt ? new Date(dto.studiedAt) : undefined,
+      durationMinutes: dto.durationMinutes,
+      qualityRating: dto.qualityRating,
+    });
+
+    return {
+      sessionId: result.sessionId,
+      topicId: result.topicId,
+      anchorReviewNumber: result.anchorReviewNumber,
+      recomputedReviewCount: result.recomputedReviewCount,
+      systemMastery: result.systemMastery,
+      topicStatus: result.topicStatus,
+    };
   }
 
   @Get()

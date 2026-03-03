@@ -6,6 +6,8 @@ import {
   ReviewScheduleWithTopic,
   CompletedReviewData,
   ReviewScheduleForUrgency,
+  ReviewTopicSuffixWriteParams,
+  ReviewEditAndSuffixRecomputeParams,
 } from '../../../application/ports/review-repository.port';
 import { ReviewSchedule } from '../../../domain/review';
 
@@ -106,6 +108,14 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
     return review ? ReviewScheduleMapper.toDomain(review) : null;
   }
 
+  async findByIdForOwner(id: string, userId: string): Promise<ReviewSchedule | null> {
+    const review = await this.prisma.reviewSchedule.findFirst({
+      where: { id, userId },
+    });
+
+    return review ? ReviewScheduleMapper.toDomain(review) : null;
+  }
+
   /**
    * Fetch the most urgent pending review for a topic, scoped to userId.
    * Returns the review with the earliest scheduledDate (most overdue first).
@@ -122,6 +132,18 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
     });
 
     return review ? ReviewScheduleMapper.toDomain(review) : null;
+  }
+
+  async findTimelineByTopicId(
+    topicId: string,
+    userId: string,
+  ): Promise<ReviewSchedule[]> {
+    const reviews = await this.prisma.reviewSchedule.findMany({
+      where: { topicId, userId },
+      orderBy: { reviewNumber: 'asc' },
+    });
+
+    return reviews.map(ReviewScheduleMapper.toDomain);
   }
 
   /**
@@ -222,5 +244,100 @@ export class ReviewPrismaRepository implements ReviewRepositoryPort {
     );
 
     await this.prisma.$transaction(updates);
+  }
+
+  async replaceTopicSuffix(params: ReviewTopicSuffixWriteParams): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.reviewSchedule.deleteMany({
+        where: {
+          userId: params.userId,
+          topicId: params.topicId,
+          reviewNumber: { gte: params.anchorReviewNumber },
+        },
+      });
+
+      if (params.reviews.length === 0) {
+        return;
+      }
+
+      await tx.reviewSchedule.createMany({
+        data: params.reviews.map((review) => ReviewScheduleMapper.toPersistence(review)),
+      });
+    });
+  }
+
+  async editReviewAndReplaceTopicSuffix(
+    params: ReviewEditAndSuffixRecomputeParams,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const review = await tx.reviewSchedule.findFirst({
+        where: {
+          id: params.reviewId,
+          userId: params.userId,
+          topicId: params.topicId,
+        },
+        select: { id: true },
+      });
+
+      if (!review) {
+        return false;
+      }
+
+      if (params.studySessionPatch) {
+        const studySession = await tx.studySession.findFirst({
+          where: {
+            userId: params.userId,
+            topicId: params.topicId,
+            sessionType: 'review',
+            studiedAt: params.studySessionPatch.matchStudiedAt,
+          },
+          select: { id: true },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        });
+
+        if (studySession) {
+          const sessionData: {
+            studiedAt?: Date;
+            durationMinutes?: number;
+            qualityRating?: number;
+          } = {};
+
+          if (params.studySessionPatch.studiedAt !== undefined) {
+            sessionData.studiedAt = params.studySessionPatch.studiedAt;
+          }
+
+          if (params.studySessionPatch.durationMinutes !== undefined) {
+            sessionData.durationMinutes = params.studySessionPatch.durationMinutes;
+          }
+
+          if (params.studySessionPatch.qualityRating !== undefined) {
+            sessionData.qualityRating = params.studySessionPatch.qualityRating;
+          }
+
+          if (Object.keys(sessionData).length > 0) {
+            await tx.studySession.update({
+              where: { id: studySession.id },
+              data: sessionData,
+            });
+          }
+        }
+      }
+
+      await tx.reviewSchedule.deleteMany({
+        where: {
+          userId: params.userId,
+          topicId: params.topicId,
+          reviewNumber: { gte: params.anchorReviewNumber },
+        },
+      });
+
+      if (params.reviews.length > 0) {
+        await tx.reviewSchedule.createMany({
+          data: params.reviews.map((item) => ReviewScheduleMapper.toPersistence(item)),
+        });
+      }
+
+      return true;
+    });
   }
 }

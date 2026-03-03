@@ -8,12 +8,12 @@ export class ScheduleFirstReviewUseCase {
     private readonly reviewSettingsRepo: ReviewSettingsRepositoryPort,
   ) {}
 
-  async execute(userId: string, topicId: string): Promise<ReviewSchedule> {
+  async execute(userId: string, topicId: string, anchorDate?: Date): Promise<ReviewSchedule> {
     const settings = await this.reviewSettingsRepo.findByUserId(userId);
     const effectiveSettings = settings ?? ReviewSettings.createDefault('default', userId);
 
     const firstInterval = effectiveSettings.getFirstInterval();
-    const scheduledDate = new Date();
+    const scheduledDate = new Date(anchorDate ?? new Date());
     scheduledDate.setDate(scheduledDate.getDate() + firstInterval);
 
     const review = ReviewSchedule.scheduleFirst({

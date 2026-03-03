@@ -14,7 +14,7 @@ export { CreateSubjectDto, UpdateSubjectDto } from './subjects';
 export { CreateTopicDto, UpdateTopicDto } from './topics';
 
 // Study — Sessions
-export { CreateSessionDto } from './sessions';
+export { CreateSessionDto, EditHistoricalSessionDto } from './sessions';
 
 // Review
-export { CompleteReviewDto, UpdateReviewSettingsDto } from './reviews';
+export { CompleteReviewDto, EditHistoricalReviewDto, UpdateReviewSettingsDto } from './reviews';

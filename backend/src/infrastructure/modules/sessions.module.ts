@@ -26,6 +26,7 @@ import { USE_CASE_TOKENS } from '../http/use-case-tokens';
 // Use-cases
 import {
   CreateSessionUseCase,
+  EditHistoricalSessionUseCase,
   GetTopicSessionsUseCase,
   GetRecentSessionsUseCase,
 } from '../../application/use-cases/sessions';
@@ -56,6 +57,16 @@ import type { ReviewSettingsRepositoryPort } from '../../application/ports/revie
         reviewSettingsRepo: ReviewSettingsRepositoryPort,
       ) => new CreateSessionUseCase(sessionRepo, topicRepo, reviewRepo, reviewSettingsRepo),
       inject: [SESSION_REPOSITORY, TOPIC_REPOSITORY, REVIEW_REPOSITORY, REVIEW_SETTINGS_REPOSITORY],
+    },
+    {
+      provide: USE_CASE_TOKENS.EditHistoricalSessionUseCase,
+      useFactory: (
+        sessionRepo: SessionRepositoryPort,
+        reviewRepo: ReviewRepositoryPort,
+        reviewSettingsRepo: ReviewSettingsRepositoryPort,
+        topicRepo: TopicRepositoryPort,
+      ) => new EditHistoricalSessionUseCase(sessionRepo, reviewRepo, reviewSettingsRepo, topicRepo),
+      inject: [SESSION_REPOSITORY, REVIEW_REPOSITORY, REVIEW_SETTINGS_REPOSITORY, TOPIC_REPOSITORY],
     },
     {
       provide: USE_CASE_TOKENS.GetTopicSessionsUseCase,
