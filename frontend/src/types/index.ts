@@ -154,6 +154,14 @@ export interface StudySession {
   topic?: Topic & { subject?: Pick<Subject, 'name' | 'color'> };
 }
 
+export type SessionHistoryEditableField = 'studiedAt' | 'qualityRating' | 'durationMinutes';
+
+export interface EditSessionHistoryRequest {
+  studiedAt?: string;
+  durationMinutes?: number;
+  qualityRating?: number;
+}
+
 // ─── Repasos ─────────────────────────────────
 
 export interface ReviewSchedule {
@@ -174,6 +182,27 @@ export interface ReviewSchedule {
 }
 
 export type ReviewResult = 'perfect' | 'good' | 'regular' | 'bad';
+
+export type ReviewHistoryEditableField = 'completedDate' | 'result' | 'durationMinutes' | 'qualityRating';
+
+export type HistoryTopicStatus = 'not_started' | 'in_progress' | 'mastered';
+
+export interface EditReviewHistoryRequest {
+  completedDate?: string;
+  result?: ReviewResult;
+  durationMinutes?: number;
+  qualityRating?: number;
+}
+
+export interface HistoryRecomputeSummary {
+  topicId: string;
+  anchorReviewNumber: number;
+  recomputedReviewCount: number;
+  systemMastery: number;
+  topicStatus: HistoryTopicStatus;
+  sessionId?: string;
+  reviewId?: string;
+}
 
 export interface CompleteReviewResponse {
   completedReview: ReviewSchedule;

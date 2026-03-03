@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Clock, BarChart3, History, BookOpen, X, Pencil, Trash2, Check, CalendarClock, RotateCcw } from 'lucide-react';
@@ -9,15 +9,28 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { HelpTooltip } from '../../components/ui/HelpTooltip';
 import { Input } from '../../components/ui/Input';
-import type { Topic } from '../../types';
+import type {
+  EditSessionHistoryRequest,
+  ReviewSchedule,
+  StudySession,
+  Topic,
+} from '../../types';
+import { SessionHistoryEditDialog } from './components/SessionHistoryEditDialog';
 
 const MODAL_BACKDROP_CLASS = 'fixed inset-0 z-50 grid place-items-center bg-canvas/70 p-4 backdrop-blur-sm';
 const MODAL_PANEL_CLASS = 'w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-float';
+
+type TopicDetailData = Topic & {
+  studySessions: StudySession[];
+  reviewSchedules: ReviewSchedule[];
+  subject: any;
+};
 
 export function TopicDetailPage() {
   const { topicId } = useParams<{ topicId: string }>();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const historyTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [sessionFormData, setSessionFormData] = useState<{
     sessionType?: string;
@@ -30,16 +43,21 @@ export function TopicDetailPage() {
   const [deletingTopic, setDeletingTopic] = useState(false);
   // Mastery adjustment state
   const [editingMastery, setEditingMastery] = useState<number | null>(null);
+  const [editingSessionHistory, setEditingSessionHistory] = useState<StudySession | null>(null);
+
+  const restoreHistoryTriggerFocus = () => {
+    const trigger = historyTriggerRef.current;
+    if (trigger) {
+      requestAnimationFrame(() => trigger.focus());
+      historyTriggerRef.current = null;
+    }
+  };
 
   const { data: topic, isLoading } = useQuery({
     queryKey: ['topic', topicId],
     queryFn: async () => {
       const res = await studiesApi.getTopic(topicId!);
-      return res.data.data as Topic & {
-        studySessions: any[];
-        reviewSchedules: any[];
-        subject: any;
-      };
+      return res.data.data as TopicDetailData;
     },
     enabled: !!topicId,
   });
@@ -89,6 +107,20 @@ export function TopicDetailPage() {
       navigate(topic?.subject?.studyPlan?.id ? `/studies/${topic.subject.studyPlan.id}` : '/studies');
     },
     onError: () => toast.error('Error al eliminar el tema'),
+  });
+
+  const editSessionHistoryMutation = useMutation({
+    mutationFn: (input: { sessionId: string; payload: EditSessionHistoryRequest }) =>
+      studiesApi.editSessionHistory(input.sessionId, input.payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['topic', topicId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-reviews'] });
+      setEditingSessionHistory(null);
+      restoreHistoryTriggerFocus();
+      toast.success('Historial de sesion actualizado');
+    },
   });
 
   if (isLoading) {
@@ -382,9 +414,9 @@ export function TopicDetailPage() {
 
         {/* Next review card */}
         {(() => {
-          const pendingReviews = ((topic as any).reviewSchedules ?? [])
-            .filter((r: any) => r.status === 'pending')
-            .sort((a: any, b: any) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+          const pendingReviews = (topic.reviewSchedules ?? [])
+            .filter((r) => r.status === 'pending')
+            .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
           const nextReview = pendingReviews[0];
           const now = new Date();
 
@@ -460,7 +492,7 @@ export function TopicDetailPage() {
           <History className="h-5 w-5" />
           Historial de sesiones
         </h2>
-        {(topic as any).studySessions?.length === 0 ? (
+        {topic.studySessions?.length === 0 ? (
           <Card>
             <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center">
               <History className="mx-auto h-8 w-8 text-muted-foreground/50" />
@@ -487,7 +519,7 @@ export function TopicDetailPage() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {(topic as any).studySessions?.map((session: any) => (
+            {topic.studySessions?.map((session) => (
               <Card key={session.id}>
                 <CardContent className="flex items-center justify-between p-3">
                 <div>
@@ -507,6 +539,18 @@ export function TopicDetailPage() {
                     <p className="text-xs text-muted-foreground">{session.durationMinutes} min</p>
                   )}
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-muted-foreground"
+                  aria-label={`Editar sesion ${new Date(session.studiedAt).toLocaleDateString('es-ES')}`}
+                  onClick={(event) => {
+                    historyTriggerRef.current = event.currentTarget;
+                    setEditingSessionHistory(session);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 </CardContent>
               </Card>
             ))}
@@ -518,7 +562,7 @@ export function TopicDetailPage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Historial de repasos</h2>
-          {((topic as any).reviewSchedules ?? []).some((r: any) => r.status === 'pending') && (
+          {(topic.reviewSchedules ?? []).some((r) => r.status === 'pending') && (
             <Link
               to="/studies/reviews"
               className="flex items-center gap-1 text-sm text-primary transition-colors hover:text-brand-primary-700"
@@ -528,7 +572,7 @@ export function TopicDetailPage() {
             </Link>
           )}
         </div>
-        {(topic as any).reviewSchedules?.length === 0 ? (
+        {topic.reviewSchedules?.length === 0 ? (
           <Card>
             <CardContent className="rounded-xl border border-dashed border-border bg-surface-muted p-6 text-center">
               <RotateCcw className="mx-auto h-8 w-8 text-muted-foreground/50" />
@@ -546,7 +590,7 @@ export function TopicDetailPage() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {(topic as any).reviewSchedules?.map((review: any) => (
+            {topic.reviewSchedules?.map((review) => (
               <Card key={review.id}>
                 <CardContent className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
@@ -745,6 +789,24 @@ export function TopicDetailPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {editingSessionHistory && (
+        <SessionHistoryEditDialog
+          key={editingSessionHistory.id}
+          session={editingSessionHistory}
+          pending={editSessionHistoryMutation.isPending}
+          onClose={() => {
+            setEditingSessionHistory(null);
+            restoreHistoryTriggerFocus();
+          }}
+          onSubmit={(payload) =>
+            editSessionHistoryMutation.mutateAsync({
+              sessionId: editingSessionHistory.id,
+              payload,
+            })
+          }
+        />
       )}
     </div>
   );
